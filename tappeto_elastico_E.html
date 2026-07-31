@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analogia del Tappeto Elastico: Campo Elettrico</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Noto Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden p-2 sm:p-4">
+
+    <!-- Header Compatto per Embed -->
+    <header class="bg-slate-800 border-b border-slate-700 py-2 px-4 rounded-xl mb-3 shadow-md">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-1">
+            <h1 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <span class="text-amber-400">🌐</span> Analogia del Tappeto Elastico & Campo Elettrico
+            </h1>
+            <div class="bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-[11px] px-2.5 py-0.5 rounded-lg">
+                💡 Pendenza del telo = Intensità del Campo ($E$)
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout (Side-by-side su Iframe) -->
+    <main class="flex-grow flex flex-col sm:flex-row gap-3 items-stretch">
+
+        <!-- Controls Sidebar (Compatta) -->
+        <div class="w-full sm:w-64 md:w-72 bg-slate-800 rounded-xl p-3 border border-slate-700 flex flex-col justify-between space-y-3 shrink-0">
+            <div class="space-y-3">
+                <h2 class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Configurazione Modello</h2>
+
+                <!-- Mode Select -->
+                <div>
+                    <label class="block text-[11px] font-semibold text-slate-300 mb-1">Carica Sorgente Centrale</label>
+                    <div class="grid grid-cols-1 gap-1.5">
+                        <button onclick="setMode('negative')" id="btn-negative" class="px-2.5 py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-between border transition-all bg-blue-600 text-white border-blue-500 shadow">
+                            <span>🔵 Carica Negativa (−)</span>
+                            <span class="text-[9px] bg-blue-800 px-1 py-0.5 rounded">Attrazione</span>
+                        </button>
+                        <button onclick="setMode('positive')" id="btn-positive" class="px-2.5 py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-between border transition-all bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-650">
+                            <span>🔴 Carica Positiva (+)</span>
+                            <span class="text-[9px] bg-slate-800 px-1 py-0.5 rounded">Repulsione</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sliders -->
+                <div class="space-y-2">
+                    <div>
+                        <div class="flex justify-between items-center mb-0.5">
+                            <label class="text-[11px] font-semibold text-slate-300">Intensità Carica ($Q$)</label>
+                            <span id="charge-val" class="text-[11px] font-bold text-amber-400">Media/Alta</span>
+                        </div>
+                        <input type="range" id="charge-slider" min="0.4" max="1.5" step="0.1" value="1.0" oninput="updateParams()" class="w-full h-1 accent-amber-500 cursor-pointer bg-slate-700 rounded-lg">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-0.5">
+                            <label class="text-[11px] font-semibold text-slate-300">Inclinazione Vista 3D</label>
+                            <span id="angle-val" class="text-[11px] font-bold text-slate-400">35°</span>
+                        </div>
+                        <input type="range" id="angle-slider" min="15" max="65" step="1" value="35" oninput="updateParams()" class="w-full h-1 accent-blue-500 cursor-pointer bg-slate-700 rounded-lg">
+                    </div>
+                </div>
+
+                <!-- Toggles -->
+                <div class="space-y-1.5 pt-1.5 border-t border-slate-700 text-[11px]">
+                    <label class="flex items-center justify-between cursor-pointer font-semibold text-slate-300">
+                        <span>Frecce Campo Elettrico ($E$)</span>
+                        <input type="checkbox" id="toggle-vectors" checked onchange="draw()" class="w-3.5 h-3.5 accent-amber-500">
+                    </label>
+                    <label class="flex items-center justify-between cursor-pointer font-semibold text-slate-300">
+                        <span>Anima Carica di Prova ($q^+$)</span>
+                        <input type="checkbox" id="toggle-marble" checked onchange="toggleAnimation()" class="w-3.5 h-3.5 accent-amber-500">
+                    </label>
+                    <label class="flex items-center justify-between cursor-pointer font-semibold text-slate-300">
+                        <span>Didascalie Spiegative</span>
+                        <input type="checkbox" id="toggle-labels" checked onchange="draw()" class="w-3.5 h-3.5 accent-amber-500">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Download Button -->
+            <div class="pt-2 border-t border-slate-700">
+                <button onclick="downloadPNG()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-1.5 px-3 rounded-lg text-[11px] transition-all flex items-center justify-center gap-1 shadow">
+                    📸 Scarica PNG HD
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="flex-grow bg-slate-950 rounded-xl border border-slate-800 p-2 flex flex-col justify-center items-center relative min-h-[350px] shadow-inner overflow-hidden">
+            <canvas id="canvas3d" width="900" height="580" class="w-full h-full max-h-[500px] object-contain cursor-grab active:cursor-grabbing"></canvas>
+            
+            <div class="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur border border-slate-800 text-[10px] text-slate-400 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                Ruota la vista trascinando il mouse
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const canvas = document.getElementById('canvas3d');
+        const ctx = canvas.getContext('2d');
+
+        let mode = 'negative';
+        let chargePower = 1.0;
+        let viewAngleY = 35 * Math.PI / 180;
+        let viewAngleX = 25 * Math.PI / 180;
+        let isAnimating = true;
+        let animFrame;
+        let marbleT = 0;
+
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+
+        window.addEventListener('mouseup', () => isDragging = false);
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - lastMouseX;
+            const dy = e.clientY - lastMouseY;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+
+            viewAngleX += dx * 0.008;
+            viewAngleY = Math.max(0.2, Math.min(1.2, viewAngleY + dy * 0.005));
+            document.getElementById('angle-slider').value = Math.round(viewAngleY * 180 / Math.PI);
+            document.getElementById('angle-val').innerText = `${Math.round(viewAngleY * 180 / Math.PI)}°`;
+            draw();
+        });
+
+        // Touch support per Chromebook
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                lastMouseX = e.touches[0].clientX;
+                lastMouseY = e.touches[0].clientY;
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!isDragging || e.touches.length !== 1) return;
+            const dx = e.touches[0].clientX - lastMouseX;
+            const dy = e.touches[0].clientY - lastMouseY;
+            lastMouseX = e.touches[0].clientX;
+            lastMouseY = e.touches[0].clientY;
+
+            viewAngleX += dx * 0.008;
+            viewAngleY = Math.max(0.2, Math.min(1.2, viewAngleY + dy * 0.005));
+            document.getElementById('angle-slider').value = Math.round(viewAngleY * 180 / Math.PI);
+            document.getElementById('angle-val').innerText = `${Math.round(viewAngleY * 180 / Math.PI)}°`;
+            draw();
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => isDragging = false);
+
+        function setMode(newMode) {
+            mode = newMode;
+            document.getElementById('btn-negative').className = mode === 'negative' 
+                ? "px-2.5 py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-between border transition-all bg-blue-600 text-white border-blue-500 shadow"
+                : "px-2.5 py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-between border transition-all bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-650";
+            
+            document.getElementById('btn-positive').className = mode === 'positive'
+                ? "px-2.5 py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-between border transition-all bg-amber-600 text-white border-amber-500 shadow"
+                : "px-2.5 py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-between border transition-all bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-650";
+            
+            draw();
+        }
+
+        function updateParams() {
+            chargePower = parseFloat(document.getElementById('charge-slider').value);
+            const deg = parseInt(document.getElementById('angle-slider').value);
+            viewAngleY = deg * Math.PI / 180;
+            document.getElementById('angle-val').innerText = `${deg}°`;
+            
+            const chargeText = chargePower < 0.7 ? "Bassa" : (chargePower > 1.2 ? "Elevata" : "Media/Alta");
+            document.getElementById('charge-val').innerText = chargeText;
+            
+            draw();
+        }
+
+        function toggleAnimation() {
+            isAnimating = document.getElementById('toggle-marble').checked;
+            if (isAnimating) {
+                loop();
+            } else {
+                cancelAnimationFrame(animFrame);
+                draw();
+            }
+        }
+
+        function getDeformation(x, z) {
+            const r2 = x * x + z * z;
+            const soft = 1.2;
+            const factor = mode === 'negative' ? -1 : 1;
+            const depth = 150 * chargePower;
+            return (factor * depth) / Math.sqrt(r2 / 800 + soft);
+        }
+
+        function project(x, y, z) {
+            const cosX = Math.cos(viewAngleX);
+            const sinX = Math.sin(viewAngleX);
+            const cosY = Math.cos(viewAngleY);
+            const sinY = Math.sin(viewAngleY);
+
+            const rx = x * cosX - z * sinX;
+            const rz = x * sinX + z * cosX;
+
+            const ry = y * cosY - rz * sinY;
+            const rz2 = y * sinY + rz * cosY;
+
+            const scale = 1.0;
+            const screenX = canvas.width / 2 + rx * scale;
+            const screenY = canvas.height / 2 + 20 - ry * scale;
+
+            return { x: screenX, y: screenY, depth: rz2 };
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const gridLines = 24;
+            const gridSize = 320;
+            const step = (gridSize * 2) / gridLines;
+
+            const showVectors = document.getElementById('toggle-vectors').checked;
+            const showLabels = document.getElementById('toggle-labels').checked;
+
+            ctx.lineWidth = 1.2;
+
+            for (let i = 0; i <= gridLines; i++) {
+                const x = -gridSize + i * step;
+                ctx.beginPath();
+                for (let j = 0; j <= gridLines; j++) {
+                    const z = -gridSize + j * step;
+                    const y = getDeformation(x, z);
+                    const pt = project(x, y, z);
+
+                    if (j === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                }
+                
+                const distRatio = Math.abs(x) / gridSize;
+                const alpha = Math.max(0.15, 0.6 - distRatio * 0.4);
+                ctx.strokeStyle = mode === 'negative' 
+                    ? `rgba(96, 165, 250, ${alpha})` 
+                    : `rgba(251, 191, 36, ${alpha})`;
+                ctx.stroke();
+            }
+
+            for (let j = 0; j <= gridLines; j++) {
+                const z = -gridSize + j * step;
+                ctx.beginPath();
+                for (let i = 0; i <= gridLines; i++) {
+                    const x = -gridSize + i * step;
+                    const y = getDeformation(x, z);
+                    const pt = project(x, y, z);
+
+                    if (i === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                }
+                const distRatio = Math.abs(z) / gridSize;
+                const alpha = Math.max(0.15, 0.6 - distRatio * 0.4);
+                ctx.strokeStyle = mode === 'negative' 
+                    ? `rgba(96, 165, 250, ${alpha})` 
+                    : `rgba(251, 191, 36, ${alpha})`;
+                ctx.stroke();
+            }
+
+            if (showVectors) {
+                const vecRadii = [75, 150, 220];
+                const vecAngles = 8;
+                for (let r of vecRadii) {
+                    for (let k = 0; k < vecAngles; k++) {
+                        const ang = (k * 2 * Math.PI) / vecAngles;
+                        const x = r * Math.cos(ang);
+                        const z = r * Math.sin(ang);
+                        const y = getDeformation(x, z);
+                        const p1 = project(x, y, z);
+
+                        const dr = 18;
+                        const dir = mode === 'negative' ? -1 : 1;
+                        const x2 = (r + dir * dr) * Math.cos(ang);
+                        const z2 = (r + dir * dr) * Math.sin(ang);
+                        const y2 = getDeformation(x2, z2);
+                        const p2 = project(x2, y2, z2);
+
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.lineWidth = 2.0;
+                        ctx.strokeStyle = '#38bdf8';
+                        ctx.stroke();
+
+                        const headlen = 5;
+                        const dx = p2.x - p1.x;
+                        const dy = p2.y - p1.y;
+                        const angle = Math.atan2(dy, dx);
+                        ctx.beginPath();
+                        ctx.moveTo(p2.x, p2.y);
+                        ctx.lineTo(p2.x - headlen * Math.cos(angle - Math.PI / 6), p2.y - headlen * Math.sin(angle - Math.PI / 6));
+                        ctx.lineTo(p2.x - headlen * Math.cos(angle + Math.PI / 6), p2.y - headlen * Math.sin(angle + Math.PI / 6));
+                        ctx.fillStyle = '#38bdf8';
+                        ctx.fill();
+                    }
+                }
+            }
+
+            const centerY = getDeformation(0, 0);
+            const centerPt = project(0, centerY, 0);
+
+            ctx.beginPath();
+            ctx.arc(centerPt.x, centerPt.y, 20, 0, Math.PI * 2);
+            ctx.fillStyle = mode === 'negative' ? '#3b82f6' : '#ef4444';
+            ctx.shadowColor = mode === 'negative' ? 'rgba(59, 130, 246, 0.6)' : 'rgba(239, 68, 68, 0.6)';
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px "Noto Sans"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(mode === 'negative' ? '−' : '+', centerPt.x, centerPt.y + 1);
+
+            if (isAnimating || document.getElementById('toggle-marble').checked) {
+                const rMarble = mode === 'negative' 
+                    ? Math.max(25, 240 - (marbleT % 215))
+                    : Math.min(240, 25 + (marbleT % 215));
+
+                const angleMarble = (marbleT * 0.02) % (Math.PI * 2);
+                const mx = rMarble * Math.cos(angleMarble);
+                const mz = rMarble * Math.sin(angleMarble);
+                const my = getDeformation(mx, mz);
+                const mPt = project(mx, my, mz);
+
+                ctx.beginPath();
+                ctx.arc(mPt.x, mPt.y, 9, 0, Math.PI * 2);
+                ctx.fillStyle = '#38bdf8';
+                ctx.shadowColor = '#38bdf8';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = '#0f172a';
+                ctx.font = 'bold 9px "Noto Sans"';
+                ctx.fillText('q+', mPt.x, mPt.y + 1);
+
+                if (showLabels) {
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.font = '600 10px "Noto Sans"';
+                    ctx.textAlign = 'left';
+                    ctx.fillText('Carica di prova (q+)', mPt.x + 12, mPt.y + 3);
+                }
+            }
+
+            if (showLabels) {
+                ctx.textAlign = 'center';
+                
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = 'bold 14px "Noto Sans"';
+                const mainTitle = mode === 'negative' 
+                    ? "DEFORMAZIONE ATTRATTIVA (Carica −)" 
+                    : "DEFORMAZIONE REPULSIVA (Carica +)";
+                ctx.fillText(mainTitle, canvas.width / 2, 28);
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '11px "Noto Sans"';
+                ctx.fillText("Analogia meccanica della curvatura dello spazio attorno a una carica", canvas.width / 2, 46);
+
+                const rimPt = project(gridSize * 0.8, 0, 0);
+                const bottomPt = project(0, centerY, 0);
+
+                ctx.beginPath();
+                ctx.moveTo(rimPt.x + 25, rimPt.y);
+                ctx.lineTo(rimPt.x + 25, bottomPt.y);
+                ctx.lineWidth = 1.2;
+                ctx.strokeStyle = '#f59e0b';
+                ctx.setLineDash([3, 3]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#f59e0b';
+                ctx.font = 'bold 10px "Noto Sans"';
+                ctx.textAlign = 'left';
+                const deformLabel = "Deformazione dello spazio";
+                ctx.fillText(deformLabel, rimPt.x + 30, (rimPt.y + bottomPt.y) / 2);
+
+                ctx.fillStyle = '#cbd5e1';
+                ctx.font = '600 10px "Noto Sans"';
+                ctx.textAlign = 'center';
+                ctx.fillText("Pendenza del telo = Intensità del Campo Elettrico (E)", canvas.width / 2, canvas.height - 12);
+            }
+        }
+
+        function loop() {
+            if (!isAnimating) return;
+            marbleT += 1.5;
+            draw();
+            animFrame = requestAnimationFrame(loop);
+        }
+
+        function downloadPNG() {
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = 1600;
+            exportCanvas.height = 1000;
+            const expCtx = exportCanvas.getContext('2d');
+
+            expCtx.drawImage(canvas, 0, 0, 1600, 1000);
+
+            const link = document.createElement('a');
+            link.download = `analogia_tappeto_elastico_${mode}.png`;
+            link.href = exportCanvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
