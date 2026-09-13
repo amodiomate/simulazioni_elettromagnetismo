@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulatore Campo Elettrico - Piani Carichi Ideali</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans', sans-serif; user-select: none; }
+        canvas { touch-action: none; }
+        /* Stile tipografico per le frazioni matematiche */
+        .math-frac {
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            text-align: center;
+            padding: 0 3px;
+            font-style: italic;
+        }
+        .math-num {
+            border-bottom: 1.5px solid currentColor;
+            line-height: 1.1;
+            padding-bottom: 1px;
+        }
+        .math-den {
+            line-height: 1.1;
+            padding-top: 1px;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between p-2 sm:p-4">
+
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 py-2.5 px-4 rounded-xl mb-2 shadow flex flex-wrap justify-between items-center gap-2">
+        <div>
+            <h1 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <span class="text-sky-400">⚡</span> Mappa del Campo: Piani Carichi Ideali
+            </h1>
+            <p class="text-[11px] text-slate-400">Trascina i piani o modifica &sigma; per osservare la sovrapposizione dei campi in ogni regione</p>
+        </div>
+        
+        <!-- Box formula compilata e formattata -->
+        <div class="bg-sky-500/10 border border-sky-500/30 text-sky-300 text-xs px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 shadow-sm">
+            <span>🎯 Singolo piano:</span>
+            <span class="font-serif italic font-bold">E =</span>
+            <span class="math-frac">
+                <span class="math-num">&sigma;</span>
+                <span class="math-den">2&epsilon;<sub>0</sub></span>
+            </span>
+        </div>
+    </header>
+
+    <!-- Toolbar dei Controlli Principali -->
+    <div class="bg-slate-800 border border-slate-700 p-2.5 rounded-xl mb-2 flex flex-wrap items-center justify-between gap-2">
+        
+        <!-- Aggiunta rapida piani -->
+        <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-xs font-semibold text-slate-300 mr-1">Aggiungi Piano:</span>
+            <button onclick="addPlate(1)" class="bg-red-600 hover:bg-red-500 active:scale-95 text-white font-bold text-xs py-1.5 px-3 rounded-lg shadow transition flex items-center gap-1">
+                <span>🔴</span> +1 &sigma;
+            </button>
+            <button onclick="addPlate(2)" class="bg-red-700 hover:bg-red-600 active:scale-95 text-white font-bold text-xs py-1.5 px-3 rounded-lg shadow transition flex items-center gap-1">
+                <span>🔴</span> +2 &sigma;
+            </button>
+            <button onclick="addPlate(-1)" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs py-1.5 px-3 rounded-lg shadow transition flex items-center gap-1">
+                <span>🔵</span> -1 &sigma;
+            </button>
+            <button onclick="addPlate(-2)" class="bg-blue-700 hover:bg-blue-600 active:scale-95 text-white font-bold text-xs py-1.5 px-3 rounded-lg shadow transition flex items-center gap-1">
+                <span>🔵</span> -2 &sigma;
+            </button>
+        </div>
+
+        <!-- Preset rapidi -->
+        <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-xs font-semibold text-slate-300 mr-1">Preset:</span>
+            <button onclick="loadPreset('single')" class="bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 text-xs py-1.5 px-2.5 rounded-lg border border-slate-600 transition">
+                🔴 Singolo Piano (+1)
+            </button>
+            <button onclick="loadPreset('capacitor')" class="bg-sky-600 hover:bg-sky-500 active:scale-95 text-white text-xs py-1.5 px-2.5 rounded-lg border border-sky-400 transition font-bold shadow">
+                ⚡ Condensatore (+1 / -1)
+            </button>
+            <button onclick="loadPreset('repulsion')" class="bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 text-xs py-1.5 px-2.5 rounded-lg border border-slate-600 transition">
+                🔴🔴 Due Piani Concordi (+1 / +1)
+            </button>
+        </div>
+
+        <!-- Annulla / Svuota -->
+        <div class="flex items-center gap-2">
+            <button onclick="undoPlate()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs py-1.5 px-2.5 rounded-lg border border-slate-600 transition">
+                ↩️ Annulla
+            </button>
+            <button onclick="clearPlates()" class="bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs py-1.5 px-2.5 rounded-lg border border-rose-800/50 transition font-semibold">
+                🗑️ Svuota
+            </button>
+        </div>
+    </div>
+
+    <!-- Pannello Ispezione Piastra Selezionata -->
+    <div id="inspectorPanel" class="bg-slate-800/90 border border-slate-700 p-2.5 rounded-xl mb-2 flex items-center justify-between text-xs min-h-[42px] backdrop-blur">
+        <div id="noSelectionText" class="text-slate-400 italic px-2 flex items-center gap-1.5">
+            <span>👆</span> Clicca su un piano per regolarne la densità <i>&sigma;</i>, ruotarlo a 90° o rimuoverlo.
+        </div>
+        
+        <div id="selectionControls" class="hidden w-full flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="font-semibold text-slate-300">Densità <i>&sigma;</i>:</span>
+                <span id="sigmaValueLabel" class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-red-500/20 text-red-300 border border-red-500/30">+1 &sigma;</span>
+            </div>
+
+            <div class="flex items-center gap-2 flex-grow max-w-xs">
+                <span class="text-[11px] text-slate-400 font-semibold">-3</span>
+                <input type="range" id="sigmaSlider" min="-3" max="3" step="1" value="1" oninput="setSelectedSigmaValue(this.value)" class="w-full h-1.5 accent-sky-500 cursor-pointer bg-slate-700 rounded-lg">
+                <span class="text-[11px] text-slate-400 font-semibold">+3</span>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <button onclick="rotateSelectedPlate()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded border border-slate-600 font-semibold flex items-center gap-1">
+                    🔄 Ruota 90°
+                </button>
+                <button onclick="toggleSelectedSign()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded border border-slate-600 font-semibold flex items-center gap-1">
+                    ⇄ Inverti Segno
+                </button>
+                <button onclick="deleteSelectedPlate()" class="bg-red-600/30 hover:bg-red-600/50 text-red-200 px-2.5 py-1 rounded border border-red-500/40 font-semibold flex items-center gap-1 ml-2">
+                    🗑️ Elimina
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Area Canvas -->
+    <main class="flex-grow bg-slate-950 rounded-xl border border-slate-800 relative overflow-hidden flex justify-center items-center min-h-[460px] shadow-inner">
+        <canvas id="fieldCanvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+        <div class="absolute bottom-2 left-2 bg-slate-900/85 backdrop-blur border border-slate-800 text-[10px] text-slate-400 px-2.5 py-1 rounded-md pointer-events-none">
+            🖐️ Trascina le armature nello spazio per variarne la posizione
+        </div>
+    </main>
+
+    <script>
+        const canvas = document.getElementById('fieldCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let plates = [];
+        let draggedPlate = null;
+        let selectedPlate = null;
+        let isPointerDown = false;
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            draw();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        class Plate {
+            constructor(x, y, orientation, sigma) {
+                this.x = x;
+                this.y = y;
+                this.orientation = orientation; // 'vertical' o 'horizontal'
+                this.sigma = sigma;
+                this.thickness = 16;
+            }
+
+            draw() {
+                const isPos = this.sigma > 0;
+                const isSelected = (this === selectedPlate);
+                const isVert = this.orientation === 'vertical';
+
+                ctx.save();
+                
+                // Evidenziazione di selezione
+                if (isSelected) {
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([5, 5]);
+                    if (isVert) {
+                        ctx.strokeRect(this.x - this.thickness / 2 - 4, 0, this.thickness + 8, canvas.height);
+                    } else {
+                        ctx.strokeRect(0, this.y - this.thickness / 2 - 4, canvas.width, this.thickness + 8);
+                    }
+                    ctx.setLineDash([]);
+                }
+
+                // Corpo della piastra
+                ctx.fillStyle = isPos ? '#ef4444' : '#3b82f6';
+                ctx.shadowColor = isPos ? 'rgba(239, 68, 68, 0.6)' : 'rgba(59, 130, 246, 0.6)';
+                ctx.shadowBlur = 10;
+                if (isVert) {
+                    ctx.fillRect(this.x - this.thickness / 2, 0, this.thickness, canvas.height);
+                } else {
+                    ctx.fillRect(0, this.y - this.thickness / 2, canvas.width, this.thickness);
+                }
+                ctx.shadowBlur = 0;
+
+                // Bordo
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.2;
+                if (isVert) {
+                    ctx.strokeRect(this.x - this.thickness / 2, 0, this.thickness, canvas.height);
+                } else {
+                    ctx.strokeRect(0, this.y - this.thickness / 2, canvas.width, this.thickness);
+                }
+
+                // Testo densità carica
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px "Noto Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const signStr = isPos ? `+${this.sigma} σ` : `${this.sigma} σ`;
+
+                if (isVert) {
+                    for (let cy = 80; cy < canvas.height; cy += 120) {
+                        ctx.fillText(signStr, this.x, cy);
+                    }
+                } else {
+                    for (let cx = 80; cx < canvas.width; cx += 140) {
+                        ctx.fillText(signStr, cx, this.y);
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            contains(px, py) {
+                if (this.orientation === 'vertical') {
+                    return Math.abs(px - this.x) <= this.thickness / 2 + 12;
+                } else {
+                    return Math.abs(py - this.y) <= this.thickness / 2 + 12;
+                }
+            }
+        }
+
+        // Calcola il campo E = (Ex, Ey) in un punto (x, y)
+        function getIdealFieldAt(x, y) {
+            let Ex = 0;
+            let Ey = 0;
+            const E0 = 1.0;
+
+            for (let p of plates) {
+                if (p.sigma === 0) continue;
+                const E_mag = Math.abs(p.sigma) * E0;
+
+                if (p.orientation === 'vertical') {
+                    if (Math.abs(x - p.x) < p.thickness / 2) continue;
+                    const signDir = (x > p.x) ? 1 : -1;
+                    const chargeDir = (p.sigma > 0) ? 1 : -1;
+                    Ex += E_mag * signDir * chargeDir;
+                } else {
+                    if (Math.abs(y - p.y) < p.thickness / 2) continue;
+                    const signDir = (y > p.y) ? 1 : -1;
+                    const chargeDir = (p.sigma > 0) ? 1 : -1;
+                    Ey += E_mag * signDir * chargeDir;
+                }
+            }
+            return { Ex, Ey };
+        }
+
+        // Traccia le linee di campo per ogni intervallo
+        function drawFieldLines() {
+            if (plates.length === 0) return;
+
+            const hasVertical = plates.some(p => p.orientation === 'vertical');
+            const hasHorizontal = plates.some(p => p.orientation === 'horizontal');
+            const lineSpacing = 34;
+
+            if (hasVertical && !hasHorizontal) {
+                const vPlates = [...plates].sort((a, b) => a.x - b.x);
+                const intervals = [];
+                let prevX = 0;
+
+                for (let p of vPlates) {
+                    const leftEdge = p.x - p.thickness / 2;
+                    const rightEdge = p.x + p.thickness / 2;
+                    if (leftEdge > prevX + 4) {
+                        intervals.push({ x1: prevX, x2: leftEdge });
+                    }
+                    prevX = rightEdge;
+                }
+                if (prevX < canvas.width) {
+                    intervals.push({ x1: prevX, x2: canvas.width });
+                }
+
+                for (let y = 20; y < canvas.height; y += lineSpacing) {
+                    for (let seg of intervals) {
+                        const midX = (seg.x1 + seg.x2) / 2;
+                        const { Ex } = getIdealFieldAt(midX, y);
+
+                        if (Math.abs(Ex) > 0.05) {
+                            ctx.beginPath();
+                            ctx.moveTo(seg.x1, y);
+                            ctx.lineTo(seg.x2, y);
+                            ctx.lineWidth = 1.4;
+                            ctx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
+                            ctx.stroke();
+
+                            if (seg.x2 - seg.x1 > 16) {
+                                const arrowAngle = Ex > 0 ? 0 : Math.PI;
+                                drawArrowHead(midX, y, arrowAngle);
+                            }
+                        }
+                    }
+                }
+            } else if (hasHorizontal && !hasVertical) {
+                const hPlates = [...plates].sort((a, b) => a.y - b.y);
+                const intervals = [];
+                let prevY = 0;
+
+                for (let p of hPlates) {
+                    const topEdge = p.y - p.thickness / 2;
+                    const bottomEdge = p.y + p.thickness / 2;
+                    if (topEdge > prevY + 4) {
+                        intervals.push({ y1: prevY, y2: topEdge });
+                    }
+                    prevY = bottomEdge;
+                }
+                if (prevY < canvas.height) {
+                    intervals.push({ y1: prevY, y2: canvas.height });
+                }
+
+                for (let x = 20; x < canvas.width; x += lineSpacing) {
+                    for (let seg of intervals) {
+                        const midY = (seg.y1 + seg.y2) / 2;
+                        const { Ey } = getIdealFieldAt(x, midY);
+
+                        if (Math.abs(Ey) > 0.05) {
+                            ctx.beginPath();
+                            ctx.moveTo(x, seg.y1);
+                            ctx.lineTo(x, seg.y2);
+                            ctx.lineWidth = 1.4;
+                            ctx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
+                            ctx.stroke();
+
+                            if (seg.y2 - seg.y1 > 16) {
+                                const arrowAngle = Ey > 0 ? Math.PI / 2 : -Math.PI / 2;
+                                drawArrowHead(x, midY, arrowAngle);
+                            }
+                        }
+                    }
+                }
+            } else {
+                const arrowStep = 38;
+                for (let x = 20; x < canvas.width; x += arrowStep) {
+                    for (let y = 20; y < canvas.height; y += arrowStep) {
+                        const { Ex, Ey } = getIdealFieldAt(x, y);
+                        const mag = Math.hypot(Ex, Ey);
+                        if (mag > 0.1) {
+                            const angle = Math.atan2(Ey, Ex);
+                            drawVectorArrow(x, y, angle, Math.min(22, mag * 8));
+                        }
+                    }
+                }
+            }
+        }
+
+        function drawVectorArrow(x, y, angle, length) {
+            const dx = Math.cos(angle) * (length / 2);
+            const dy = Math.sin(angle) * (length / 2);
+
+            ctx.beginPath();
+            ctx.moveTo(x - dx, y - dy);
+            ctx.lineTo(x + dx, y + dy);
+            ctx.lineWidth = 1.3;
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+            ctx.stroke();
+
+            drawArrowHead(x + dx, y + dy, angle);
+        }
+
+        function drawArrowHead(x, y, angle) {
+            const headLen = 7.5;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-headLen, -headLen * 0.45);
+            ctx.lineTo(-headLen + 1.5, 0);
+            ctx.lineTo(-headLen, headLen * 0.45);
+            ctx.closePath();
+            ctx.fillStyle = '#38bdf8';
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Griglia di sfondo
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.35)';
+            ctx.lineWidth = 1;
+            const grid = 40;
+            for (let x = 0; x < canvas.width; x += grid) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += grid) {
+                ctx.beginPath();
+                ctx.moveTo(0, y); ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            if (plates.length > 0) {
+                drawFieldLines();
+            }
+
+            for (let p of plates) {
+                p.draw();
+            }
+        }
+
+        function updateInspectorUI() {
+            const noSelectionText = document.getElementById('noSelectionText');
+            const selectionControls = document.getElementById('selectionControls');
+
+            if (selectedPlate) {
+                noSelectionText.classList.add('hidden');
+                selectionControls.classList.remove('hidden');
+                
+                const sigmaVal = selectedPlate.sigma;
+                const sigmaStr = sigmaVal > 0 ? `+${sigmaVal} σ` : `${sigmaVal} σ`;
+                const label = document.getElementById('sigmaValueLabel');
+                label.textContent = sigmaStr;
+                label.className = `text-xs font-bold px-2.5 py-0.5 rounded-md ${sigmaVal > 0 ? 'bg-red-500/20 text-red-300 border border-red-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'}`;
+                
+                document.getElementById('sigmaSlider').value = sigmaVal;
+            } else {
+                noSelectionText.classList.remove('hidden');
+                selectionControls.classList.add('hidden');
+            }
+        }
+
+        function setSelectedSigmaValue(val) {
+            if (!selectedPlate) return;
+            let n = parseInt(val);
+            if (n === 0) n = 1;
+            selectedPlate.sigma = n;
+            updateInspectorUI();
+            draw();
+        }
+
+        function rotateSelectedPlate() {
+            if (!selectedPlate) return;
+            selectedPlate.orientation = (selectedPlate.orientation === 'vertical') ? 'horizontal' : 'vertical';
+            draw();
+        }
+
+        function toggleSelectedSign() {
+            if (!selectedPlate) return;
+            selectedPlate.sigma = -selectedPlate.sigma;
+            updateInspectorUI();
+            draw();
+        }
+
+        function deleteSelectedPlate() {
+            if (!selectedPlate) return;
+            plates = plates.filter(p => p !== selectedPlate);
+            selectedPlate = null;
+            updateInspectorUI();
+            draw();
+        }
+
+        function addPlate(sigma) {
+            const cx = canvas.width / 2 + (Math.random() * 80 - 40);
+            const newP = new Plate(cx, canvas.height / 2, 'vertical', sigma);
+            plates.push(newP);
+            selectedPlate = newP;
+            updateInspectorUI();
+            draw();
+        }
+
+        function undoPlate() {
+            const removed = plates.pop();
+            if (removed === selectedPlate) selectedPlate = null;
+            updateInspectorUI();
+            draw();
+        }
+
+        function clearPlates() {
+            plates = [];
+            selectedPlate = null;
+            updateInspectorUI();
+            draw();
+        }
+
+        function loadPreset(type) {
+            plates = [];
+            selectedPlate = null;
+            const cx = canvas.width / 2;
+
+            if (type === 'single') {
+                plates.push(new Plate(cx, canvas.height / 2, 'vertical', 1));
+            } else if (type === 'capacitor') {
+                plates.push(new Plate(cx - 100, canvas.height / 2, 'vertical', 1));
+                plates.push(new Plate(cx + 100, canvas.height / 2, 'vertical', -1));
+            } else if (type === 'repulsion') {
+                plates.push(new Plate(cx - 100, canvas.height / 2, 'vertical', 1));
+                plates.push(new Plate(cx + 100, canvas.height / 2, 'vertical', 1));
+            }
+            updateInspectorUI();
+            draw();
+        }
+
+        // Pointer / Drag & Drop
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function handlePointerDown(e) {
+            const pos = getPointerPos(e);
+            isPointerDown = true;
+            let hit = null;
+
+            for (let p of plates) {
+                if (p.contains(pos.x, pos.y)) {
+                    hit = p;
+                    break;
+                }
+            }
+
+            if (hit) {
+                draggedPlate = hit;
+                selectedPlate = hit;
+            } else {
+                draggedPlate = null;
+                selectedPlate = null;
+            }
+            updateInspectorUI();
+            draw();
+        }
+
+        function handlePointerMove(e) {
+            if (!isPointerDown || !draggedPlate) return;
+            const pos = getPointerPos(e);
+            if (draggedPlate.orientation === 'vertical') {
+                draggedPlate.x = Math.max(30, Math.min(canvas.width - 30, pos.x));
+            } else {
+                draggedPlate.y = Math.max(30, Math.min(canvas.height - 30, pos.y));
+            }
+            draw();
+        }
+
+        function handlePointerUp() {
+            isPointerDown = false;
+            draggedPlate = null;
+        }
+
+        canvas.addEventListener('mousedown', handlePointerDown);
+        canvas.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', handlePointerDown, { passive: true });
+        canvas.addEventListener('touchmove', handlePointerMove, { passive: true });
+        window.addEventListener('touchend', handlePointerUp);
+
+        setTimeout(() => {
+            resizeCanvas();
+            loadPreset('capacitor');
+        }, 100);
+    </script>
+</body>
+</html>
