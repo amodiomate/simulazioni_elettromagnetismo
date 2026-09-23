@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratorio Legge di Coulomb - Forze Elettrostatiche</title>
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --panel-bg: rgba(30, 41, 59, 0.95);
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            gap: 8px;
+        }
+
+        header {
+            background-color: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 8px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        header h1 {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .math-badge {
+            background: rgba(14, 165, 233, 0.15);
+            border: 1px solid rgba(14, 165, 233, 0.35);
+            color: #38bdf8;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-style: italic;
+            font-family: serif;
+        }
+
+        .workspace {
+            display: flex;
+            flex-grow: 1;
+            gap: 10px;
+            min-height: 520px;
+        }
+
+        .canvas-container {
+            flex-grow: 1;
+            background-color: #020617;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+            cursor: default;
+        }
+
+        .sidebar {
+            width: 330px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 12px;
+        }
+
+        .card-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #38bdf8;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .checkbox-label input {
+            accent-color: #0284c7;
+            cursor: pointer;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        button {
+            border: none;
+            outline: none;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 10px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        .btn-pos { background-color: #dc2626; color: #fff; }
+        .btn-pos:hover { background-color: #ef4444; }
+        .btn-neg { background-color: #2563eb; color: #fff; }
+        .btn-neg:hover { background-color: #3b82f6; }
+        .btn-slate { background-color: #334155; color: #e2e8f0; border: 1px solid #475569; }
+        .btn-slate:hover { background-color: #475569; }
+        .btn-target { background-color: #eab308; color: #0f172a; font-weight: bold; }
+        .btn-target:hover { background-color: #facc15; }
+        .btn-danger { background-color: rgba(225, 29, 72, 0.2); color: #fda4af; border: 1px solid rgba(225, 29, 72, 0.4); }
+        .btn-danger:hover { background-color: rgba(225, 29, 72, 0.35); }
+
+        select, input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        select {
+            background-color: #1e293b;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .readout {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background: #0f172a;
+            border: 1px solid #334155;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 11.5px;
+            margin-top: 6px;
+            line-height: 1.6;
+        }
+
+        .hud-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 11px;
+            color: #94a3b8;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>⚡ Misuratore della Forza di Coulomb</h1>
+            <span style="font-size: 11px; color: var(--text-muted);">Trascina le cariche e il metro. Clicca su una carica per regolarne il valore o renderla bersaglio.</span>
+        </div>
+        <div class="math-badge">
+            F = k · |q₁ · q₂| / r² &nbsp;|&nbsp; k = 8.99 × 10⁹ N·m²/C²
+        </div>
+    </header>
+
+    <div class="workspace">
+        <div class="canvas-container">
+            <canvas id="simCanvas"></canvas>
+            <div class="hud-overlay" id="hudScale">
+                📏 Scala Spazio: 100 px = 1.00 m | Origine centrale (0, 0)
+            </div>
+        </div>
+
+        <div class="sidebar">
+
+            <!-- Carica Bersaglio -->
+            <div class="card">
+                <div class="card-title">
+                    <span>🎯 Bersaglio Misura Forza</span>
+                </div>
+                <select id="targetSelect" onchange="onTargetSelectChange(this.value)">
+                    <!-- Popolato dinamicamente -->
+                </select>
+                <div class="readout" id="forceReadout">
+                    Carica bersaglio non selezionata.
+                </div>
+            </div>
+
+            <!-- Vettori Forza e Fattore di Scala -->
+            <div class="card">
+                <div class="card-title">Visualizzazione Vettoriale</div>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkTotalForce" checked onchange="draw()">
+                    <span style="color: #facc15; font-weight: bold;">➔ Forza Risultante (<b>F</b><sub>tot</sub>)</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkIndividualForces" checked onchange="draw()">
+                    <span style="color: #38bdf8;">➔ Forze Parziali (<b>F</b><sub>12</sub>, <b>F</b><sub>13</sub>...)</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkComponents" onchange="draw()">
+                    <span style="color: #c084fc;">Componenti cartesiane (F<sub>x</sub>, F<sub>y</sub>)</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkValues" checked onchange="draw()">
+                    <span>Etichette valori sui vettori</span>
+                </label>
+
+                <!-- Slider per moltiplicare l'ingrandimento -->
+                <div style="margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 6px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 3px;">
+                        <span>Ingrandimento Frecce Forza:</span>
+                        <span id="scaleLabel" style="font-weight:bold; color:#38bdf8;">1.0×</span>
+                    </div>
+                    <input type="range" id="vectorScaleSlider" min="0.5" max="10.0" step="0.5" value="1.0" oninput="onVectorScaleChange(this.value)">
+                </div>
+            </div>
+
+            <!-- Strumenti Metro e Griglia -->
+            <div class="card">
+                <div class="card-title">Strumenti di Misura</div>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkGrid" checked onchange="draw()">
+                    <span>Griglia graduata (0.5 m / 1.0 m)</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="chkRuler" checked onchange="draw()">
+                    <span>Metro a nastro trascinabile</span>
+                </label>
+                <button class="btn-slate" style="width: 100%; margin-top: 4px;" onclick="resetRuler()">
+                    ↺ Riposiziona Metro
+                </button>
+            </div>
+
+            <!-- Carica Selezionata / Aggiunta -->
+            <div class="card">
+                <div class="card-title">
+                    <span>Modifica / Aggiungi Cariche</span>
+                </div>
+                <div id="chargeInspector" style="margin-bottom: 8px;">
+                    <span style="color: var(--text-muted); font-style: italic;">Clicca su una carica per editarla</span>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn-pos" onclick="addCharge(1)">+ 1 nC</button>
+                    <button class="btn-pos" onclick="addCharge(2)">+ 2 nC</button>
+                    <button class="btn-neg" onclick="addCharge(-1)">- 1 nC</button>
+                    <button class="btn-neg" onclick="addCharge(-2)">- 2 nC</button>
+                </div>
+            </div>
+
+            <!-- Preset Didattici -->
+            <div class="card">
+                <div class="card-title">Preset Didattici</div>
+                <div class="btn-group">
+                    <button class="btn-slate" onclick="loadPreset('action_reaction')">Azione / Reazione (2 cariche)</button>
+                    <button class="btn-slate" onclick="loadPreset('superposition')">Principio Sovrapposizione</button>
+                    <button class="btn-slate" onclick="loadPreset('dipole')">Dipolo Elettrico</button>
+                    <button class="btn-danger" onclick="clearAll()">🗑️ Svuota Tutto</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const K_COULOMB = 8.98755e9; // N * m^2 / C^2
+        const PIXELS_PER_METER = 100; // 100 px = 1.0 metro
+        
+        // Fattore raddoppiato: 1 microNewton = 160 pixel su schermo con scala 1.0x
+        const BASE_SCALE = 1.6e8; 
+        let userVectorScale = 1.0;
+
+        let charges = [];
+        let targetChargeId = null;
+        let selectedCharge = null;
+
+        // Metro a nastro
+        const ruler = {
+            p1: { x: 140, y: 360 },
+            p2: { x: 340, y: 360 }
+        };
+
+        let isPointerDown = false;
+        let draggedItem = null;
+        let pointerOffset = { x: 0, y: 0 };
+
+        class PointCharge {
+            constructor(id, x, y, q_nC) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.q = q_nC;
+                this.pointRadius = 11;
+                this.hitRadius = 24;
+            }
+
+            draw() {
+                const isTarget = (this.id === targetChargeId);
+                const isSelected = (this === selectedCharge);
+                const isPos = this.q >= 0;
+
+                ctx.save();
+
+                // Cerchio bersaglio
+                if (isTarget) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.pointRadius + 6, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#facc15';
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
+                } else if (isSelected) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.pointRadius + 5, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([3, 3]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // Corpo carica
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.pointRadius, 0, Math.PI * 2);
+                ctx.fillStyle = isPos ? '#ef4444' : '#3b82f6';
+                ctx.shadowColor = isPos ? 'rgba(239, 68, 68, 0.7)' : 'rgba(59, 130, 246, 0.7)';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Solo il nome dentro il pallino
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`q${this.id}`, this.x, this.y);
+
+                ctx.restore();
+            }
+
+            contains(px, py) {
+                const dx = this.x - px;
+                const dy = this.y - py;
+                return (dx * dx + dy * dy) <= (this.hitRadius * this.hitRadius);
+            }
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            draw();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function calculateForcesOn(target) {
+            const individual = [];
+            let totalFx = 0;
+            let totalFy = 0;
+
+            for (let other of charges) {
+                if (other.id === target.id) continue;
+
+                const dx_px = target.x - other.x;
+                const dy_px = target.y - other.y;
+                const r_px = Math.hypot(dx_px, dy_px);
+
+                if (r_px < 2) continue;
+
+                const r_m = r_px / PIXELS_PER_METER;
+                const q1_C = target.q * 1e-9;
+                const q2_C = other.q * 1e-9;
+
+                const mag = K_COULOMB * Math.abs(q1_C * q2_C) / (r_m * r_m);
+
+                const ux = dx_px / r_px;
+                const uy = dy_px / r_px;
+
+                const isRepulsive = (target.q * other.q) > 0;
+                const sign = isRepulsive ? 1 : -1;
+
+                const Fx = mag * ux * sign;
+                const Fy = mag * uy * sign;
+
+                individual.push({
+                    sourceId: other.id,
+                    sourceQ: other.q,
+                    r_m: r_m,
+                    magnitude: mag,
+                    Fx: Fx,
+                    Fy: Fy
+                });
+
+                totalFx += Fx;
+                totalFy += Fy;
+            }
+
+            const totalMag = Math.hypot(totalFx, totalFy);
+            return {
+                individual: individual,
+                total: { Fx: totalFx, Fy: totalFy, magnitude: totalMag }
+            };
+        }
+
+        function drawGrid() {
+            if (!document.getElementById('chkGrid').checked) return;
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const gridSpacing = PIXELS_PER_METER / 2;
+
+            ctx.save();
+            ctx.lineWidth = 1;
+
+            ctx.strokeStyle = '#1e293b';
+            for (let x = cx % gridSpacing; x < canvas.width; x += gridSpacing) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = cy % gridSpacing; y < canvas.height; y += gridSpacing) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height);
+            ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy);
+            ctx.stroke();
+
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'center';
+            for (let x = cx - 5 * PIXELS_PER_METER; x <= cx + 5 * PIXELS_PER_METER; x += PIXELS_PER_METER) {
+                const m = Math.round((x - cx) / PIXELS_PER_METER);
+                if (m !== 0) ctx.fillText(`${m}m`, x, cy + 13);
+            }
+            ctx.textAlign = 'right';
+            for (let y = cy - 5 * PIXELS_PER_METER; y <= cy + 5 * PIXELS_PER_METER; y += PIXELS_PER_METER) {
+                const m = Math.round((cy - y) / PIXELS_PER_METER);
+                if (m !== 0) ctx.fillText(`${m}m`, cx - 5, y + 3);
+            }
+
+            ctx.restore();
+        }
+
+        function drawVector(target, vx, vy, color, labelText, lineWidth = 2.5, textOffsetSide = 1) {
+            const vMag = Math.hypot(vx, vy);
+            if (vMag < 1e-13) return;
+
+            const scale = BASE_SCALE * userVectorScale;
+            let drawLen = vMag * scale;
+
+            if (drawLen < 22) drawLen = 22;
+            if (drawLen > 450) drawLen = 450;
+
+            const ux = vx / vMag;
+            const uy = vy / vMag;
+
+            const startX = target.x + ux * (target.pointRadius + 2);
+            const startY = target.y + uy * (target.pointRadius + 2);
+
+            const endX = startX + ux * drawLen;
+            const endY = startY + uy * drawLen;
+            const angle = Math.atan2(vy, vx);
+
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = lineWidth;
+
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            const headLen = Math.min(drawLen * 0.35, 11 + lineWidth);
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 6), endY - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 6), endY - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+
+            if (labelText && document.getElementById('chkValues').checked) {
+                const perpAngle = angle + (Math.PI / 2) * textOffsetSide;
+                const tx = endX + 16 * Math.cos(perpAngle);
+                const ty = endY + 16 * Math.sin(perpAngle);
+
+                ctx.font = 'bold 11px sans-serif';
+                const textWidth = ctx.measureText(labelText).width;
+
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1;
+                ctx.fillRect(tx - 4, ty - 9, textWidth + 8, 18);
+                ctx.strokeRect(tx - 4, ty - 9, textWidth + 8, 18);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labelText, tx, ty);
+            }
+
+            ctx.restore();
+        }
+
+        function drawRuler() {
+            if (!document.getElementById('chkRuler').checked) return;
+
+            const dx = ruler.p2.x - ruler.p1.x;
+            const dy = ruler.p2.y - ruler.p1.y;
+            const len_px = Math.hypot(dx, dy);
+            const len_m = (len_px / PIXELS_PER_METER).toFixed(2);
+            const angle = Math.atan2(dy, dx);
+
+            ctx.save();
+
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(ruler.p1.x, ruler.p1.y);
+            ctx.lineTo(ruler.p2.x, ruler.p2.y);
+            ctx.stroke();
+
+            const numTicks = Math.floor(len_px / 10);
+            ctx.lineWidth = 1.2;
+            for (let i = 0; i <= numTicks; i++) {
+                const t = (i * 10) / len_px;
+                const tx = ruler.p1.x + t * dx;
+                const ty = ruler.p1.y + t * dy;
+                const isMajor = (i % 10 === 0);
+                const tickLen = isMajor ? 8 : 4;
+                const perpX = -Math.sin(angle) * tickLen;
+                const perpY = Math.cos(angle) * tickLen;
+
+                ctx.beginPath();
+                ctx.moveTo(tx - perpX, ty - perpY);
+                ctx.lineTo(tx + perpX, ty + perpY);
+                ctx.stroke();
+            }
+
+            for (let pt of [ruler.p1, ruler.p2]) {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 9, 0, Math.PI * 2);
+                ctx.fillStyle = '#38bdf8';
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            const midX = (ruler.p1.x + ruler.p2.x) / 2;
+            const midY = (ruler.p1.y + ruler.p2.y) / 2;
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1.5;
+            ctx.fillRect(midX - 35, midY - 12, 70, 24);
+            ctx.strokeRect(midX - 35, midY - 12, 70, 24);
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${len_m} m`, midX, midY);
+
+            ctx.restore();
+        }
+
+        function formatForce(N) {
+            const uN = N * 1e6;
+            if (uN >= 1.0) {
+                return `${uN.toFixed(2)} μN`;
+            } else if (uN >= 0.01) {
+                return `${uN.toFixed(3)} μN`;
+            } else {
+                return `${(N * 1e9).toFixed(1)} nN`;
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawGrid();
+
+            const target = charges.find(c => c.id === targetChargeId);
+            const showTotal = document.getElementById('chkTotalForce').checked;
+            const showIndiv = document.getElementById('chkIndividualForces').checked;
+            const showComp = document.getElementById('chkComponents').checked;
+
+            if (target) {
+                const res = calculateForcesOn(target);
+
+                if (showIndiv) {
+                    let sideIdx = 0;
+                    for (let f of res.individual) {
+                        const side = (sideIdx % 2 === 0) ? 1 : -1;
+                        const lbl = `F(q${f.sourceId}➔q${target.id}) = ${formatForce(f.magnitude)}`;
+                        drawVector(target, f.Fx, f.Fy, '#38bdf8', lbl, 2.2, side);
+
+                        const src = charges.find(c => c.id === f.sourceId);
+                        if (src) {
+                            ctx.save();
+                            ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+                            ctx.setLineDash([3, 3]);
+                            ctx.beginPath();
+                            ctx.moveTo(src.x, src.y);
+                            ctx.lineTo(target.x, target.y);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                        sideIdx++;
+                    }
+                }
+
+                if (showComp && res.total.magnitude > 1e-13) {
+                    drawVector(target, res.total.Fx, 0, '#c084fc', `Fx: ${formatForce(Math.abs(res.total.Fx))}`, 1.8, 1);
+                    drawVector(target, 0, res.total.Fy, '#f472b6', `Fy: ${formatForce(Math.abs(res.total.Fy))}`, 1.8, -1);
+                }
+
+                if (showTotal && res.total.magnitude > 1e-13) {
+                    const lbl = `F_tot = ${formatForce(res.total.magnitude)}`;
+                    drawVector(target, res.total.Fx, res.total.Fy, '#facc15', lbl, 3.5, 1);
+                }
+
+                updateReadout(target, res);
+            } else {
+                updateReadout(null, null);
+            }
+
+            for (let c of charges) {
+                c.draw();
+            }
+
+            drawRuler();
+        }
+
+        // Formattazione HTML compilata nitida nel pannello
+        function updateReadout(target, res) {
+            const box = document.getElementById('forceReadout');
+            if (!target || !res) {
+                box.innerHTML = `<span style="color: var(--text-muted)">Nessuna carica bersaglio selezionata.</span>`;
+                return;
+            }
+
+            let html = `<div><b>Bersaglio:</b> q<sub>${target.id}</sub> (${target.q > 0 ? '+' : ''}${target.q} nC)</div>`;
+            html += `<div style="color:#facc15; font-weight:bold; margin-top:2px;">`;
+            html += `|<b>F</b><sub>tot</sub>| = ${formatForce(res.total.magnitude)}`;
+            html += `</div>`;
+            html += `<div style="font-size:11px; color:#cbd5e1;">`;
+            html += `F<sub>x</sub> = ${formatForce(res.total.Fx)} &nbsp;|&nbsp; F<sub>y</sub> = ${formatForce(res.total.Fy)}`;
+            html += `</div>`;
+
+            if (res.individual.length > 0) {
+                html += `<div style="border-top: 1px solid #334155; margin-top:6px; padding-top:4px;">`;
+                html += `<b>Contributi parziali:</b><br>`;
+                for (let f of res.individual) {
+                    html += `• da q<sub>${f.sourceId}</sub>: ${formatForce(f.magnitude)} (r = ${f.r_m.toFixed(2)} m)<br>`;
+                }
+                html += `</div>`;
+            }
+            box.innerHTML = html;
+        }
+
+        function onVectorScaleChange(val) {
+            userVectorScale = parseFloat(val);
+            document.getElementById('scaleLabel').innerText = `${userVectorScale.toFixed(1)}×`;
+            draw();
+        }
+
+        function updateTargetDropdown() {
+            const sel = document.getElementById('targetSelect');
+            sel.innerHTML = '';
+
+            if (charges.length === 0) {
+                const opt = document.createElement('option');
+                opt.text = 'Nessuna carica presente';
+                sel.add(opt);
+                targetChargeId = null;
+                return;
+            }
+
+            for (let c of charges) {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.text = `Carica q${c.id} (${c.q > 0 ? '+' : ''}${c.q} nC)`;
+                if (c.id === targetChargeId) opt.selected = true;
+                sel.add(opt);
+            }
+
+            if (!charges.some(c => c.id === targetChargeId)) {
+                targetChargeId = charges[0].id;
+                sel.value = targetChargeId;
+            }
+        }
+
+        function updateInspectorUI() {
+            const insp = document.getElementById('chargeInspector');
+            if (!selectedCharge) {
+                insp.innerHTML = `<span style="color: var(--text-muted); font-style: italic;">Clicca su una carica per regolarne il valore</span>`;
+                return;
+            }
+
+            const isTarget = (selectedCharge.id === targetChargeId);
+
+            insp.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <b>q<sub>${selectedCharge.id}</sub>:</b>
+                    <span style="font-weight:bold; color:${selectedCharge.q >= 0 ? '#ef4444' : '#3b82f6'}">
+                        ${selectedCharge.q > 0 ? '+' : ''}${selectedCharge.q} nC
+                    </span>
+                </div>
+                <input type="range" min="-10" max="10" step="1" value="${selectedCharge.q}" oninput="onSelectedChargeValChange(this.value)">
+                <div style="display:flex; gap:6px; margin-top:6px;">
+                    <button class="${isTarget ? 'btn-slate' : 'btn-target'}" style="flex:1" onclick="makeSelectedTarget()">
+                        ${isTarget ? '★ È Bersaglio' : '🎯 Rendi Bersaglio'}
+                    </button>
+                    <button class="btn-slate" style="flex:1" onclick="invertChargeSign()">⇄ Inverti</button>
+                    <button class="btn-danger" style="flex:1" onclick="deleteSelectedCharge()">🗑️ Elimina</button>
+                </div>
+            `;
+        }
+
+        function makeSelectedTarget() {
+            if (!selectedCharge) return;
+            targetChargeId = selectedCharge.id;
+            updateTargetDropdown();
+            updateInspectorUI();
+            draw();
+        }
+
+        function onTargetSelectChange(val) {
+            targetChargeId = parseInt(val);
+            updateInspectorUI();
+            draw();
+        }
+
+        function onSelectedChargeValChange(val) {
+            if (!selectedCharge) return;
+            selectedCharge.q = parseInt(val);
+            updateTargetDropdown();
+            updateInspectorUI();
+            draw();
+        }
+
+        function invertChargeSign() {
+            if (!selectedCharge) return;
+            selectedCharge.q = -selectedCharge.q;
+            updateTargetDropdown();
+            updateInspectorUI();
+            draw();
+        }
+
+        function deleteSelectedCharge() {
+            if (!selectedCharge) return;
+            charges = charges.filter(c => c !== selectedCharge);
+            if (targetChargeId === selectedCharge.id) {
+                targetChargeId = charges.length > 0 ? charges[0].id : null;
+            }
+            selectedCharge = null;
+            updateTargetDropdown();
+            updateInspectorUI();
+            draw();
+        }
+
+        let nextId = 1;
+        function addCharge(q_nC) {
+            const cx = canvas.width / 2 + (Math.random() * 80 - 40);
+            const cy = canvas.height / 2 + (Math.random() * 80 - 40);
+            const c = new PointCharge(nextId++, cx, cy, q_nC);
+            charges.push(c);
+            selectedCharge = c;
+            if (!targetChargeId) targetChargeId = c.id;
+            updateTargetDropdown();
+            updateInspectorUI();
+            draw();
+        }
+
+        function clearAll() {
+            charges = [];
+            targetChargeId = null;
+            selectedCharge = null;
+            updateTargetDropdown();
+            updateInspectorUI();
+            draw();
+        }
+
+        function resetRuler() {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            ruler.p1 = { x: cx - 100, y: cy + 120 };
+            ruler.p2 = { x: cx + 100, y: cy + 120 };
+            draw();
+        }
+
+        function loadPreset(type) {
+            clearAll();
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            if (type === 'action_reaction') {
+                charges.push(new PointCharge(1, cx - 100, cy, 3));
+                charges.push(new PointCharge(2, cx + 100, cy, 1));
+                targetChargeId = 2;
+                ruler.p1 = { x: cx - 100, y: cy };
+                ruler.p2 = { x: cx + 100, y: cy };
+            } else if (type === 'superposition') {
+                charges.push(new PointCharge(1, cx - 120, cy - 70, 2));
+                charges.push(new PointCharge(2, cx + 120, cy - 70, -2));
+                charges.push(new PointCharge(3, cx, cy + 70, 1));
+                targetChargeId = 3;
+                ruler.p1 = { x: cx - 120, y: cy - 70 };
+                ruler.p2 = { x: cx, y: cy + 70 };
+            } else if (type === 'dipole') {
+                charges.push(new PointCharge(1, cx - 80, cy, 2));
+                charges.push(new PointCharge(2, cx + 80, cy, -2));
+                targetChargeId = 2;
+                ruler.p1 = { x: cx - 80, y: cy };
+                ruler.p2 = { x: cx + 80, y: cy };
+            }
+            nextId = charges.length + 1;
+            selectedCharge = charges[0];
+            updateTargetDropdown();
+            updateInspectorUI();
+            draw();
+        }
+
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: (clientX - rect.left) * (canvas.width / rect.width),
+                y: (clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        function handlePointerDown(e) {
+            const pos = getPointerPos(e);
+            isPointerDown = true;
+
+            // 1. Maniglie metro
+            if (document.getElementById('chkRuler').checked) {
+                if (Math.hypot(pos.x - ruler.p1.x, pos.y - ruler.p1.y) < 18) {
+                    draggedItem = { type: 'ruler_p1' };
+                    return;
+                }
+                if (Math.hypot(pos.x - ruler.p2.x, pos.y - ruler.p2.y) < 18) {
+                    draggedItem = { type: 'ruler_p2' };
+                    return;
+                }
+                const midX = (ruler.p1.x + ruler.p2.x) / 2;
+                const midY = (ruler.p1.y + ruler.p2.y) / 2;
+                if (Math.hypot(pos.x - midX, pos.y - midY) < 35) {
+                    draggedItem = {
+                        type: 'ruler_body',
+                        off1: { x: ruler.p1.x - pos.x, y: ruler.p1.y - pos.y },
+                        off2: { x: ruler.p2.x - pos.x, y: ruler.p2.y - pos.y }
+                    };
+                    return;
+                }
+            }
+
+            // 2. Click su cariche
+            let hitCharge = null;
+            for (let i = charges.length - 1; i >= 0; i--) {
+                if (charges[i].contains(pos.x, pos.y)) {
+                    hitCharge = charges[i];
+                    break;
+                }
+            }
+
+            if (hitCharge) {
+                selectedCharge = hitCharge;
+                draggedItem = { type: 'charge', obj: hitCharge };
+                pointerOffset.x = pos.x - hitCharge.x;
+                pointerOffset.y = pos.y - hitCharge.y;
+                updateInspectorUI();
+            } else {
+                draggedItem = null;
+            }
+            draw();
+        }
+
+        function handlePointerMove(e) {
+            if (!isPointerDown || !draggedItem) return;
+            const pos = getPointerPos(e);
+
+            if (draggedItem.type === 'charge') {
+                draggedItem.obj.x = Math.max(15, Math.min(canvas.width - 15, pos.x - pointerOffset.x));
+                draggedItem.obj.y = Math.max(15, Math.min(canvas.height - 15, pos.y - pointerOffset.y));
+                draw();
+            } else if (draggedItem.type === 'ruler_p1') {
+                ruler.p1.x = pos.x;
+                ruler.p1.y = pos.y;
+                draw();
+            } else if (draggedItem.type === 'ruler_p2') {
+                ruler.p2.x = pos.x;
+                ruler.p2.y = pos.y;
+                draw();
+            } else if (draggedItem.type === 'ruler_body') {
+                ruler.p1.x = pos.x + draggedItem.off1.x;
+                ruler.p1.y = pos.y + draggedItem.off1.y;
+                ruler.p2.x = pos.x + draggedItem.off2.x;
+                ruler.p2.y = pos.y + draggedItem.off2.y;
+                draw();
+            }
+        }
+
+        function handlePointerUp() {
+            isPointerDown = false;
+            draggedItem = null;
+        }
+
+        canvas.addEventListener('mousedown', handlePointerDown);
+        canvas.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+
+        canvas.addEventListener('touchstart', handlePointerDown, { passive: true });
+        canvas.addEventListener('touchmove', handlePointerMove, { passive: true });
+        window.addEventListener('touchend', handlePointerUp);
+
+        setTimeout(() => {
+            resizeCanvas();
+            loadPreset('action_reaction');
+        }, 80);
+    </script>
+</body>
+</html>
