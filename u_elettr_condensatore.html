@@ -212,13 +212,13 @@
                     <input type="range" id="hRange" min="0.5" max="4.5" step="0.5" value="4.0">
                 </div>
 
-                <!-- Slider Velocità Animazione -->
+                <!-- Slider Velocità Animazione (Rallentatore espanso fino a 0.05x) -->
                 <div class="control-group">
                     <div class="control-row">
                         <span>Velocità Animazione:</span>
-                        <span id="speedVal" style="color: #34d399; font-weight: bold;">1.0x (Normale)</span>
+                        <span id="speedVal" style="color: #34d399; font-weight: bold;">1.0x</span>
                     </div>
-                    <input type="range" id="speedRange" min="0.1" max="1.0" step="0.1" value="1.0">
+                    <input type="range" id="speedRange" min="0.05" max="1.0" step="0.05" value="1.0">
                 </div>
 
                 <!-- Pulsanti -->
@@ -289,12 +289,15 @@
         const eps0 = 8.854e-12; // C^2 / (N m^2)
         const d_meters = 0.05;  // 5 cm di separazione
 
-        let sigma_micro = parseFloat(sigmaRange.value); // microCoulomb / m^2
-        let q_nano = parseFloat(qRange.value);          // nanoCoulomb
-        let m_mg = parseFloat(massRange.value);          // milligrammi
+        // FATTORE DI RIDUZIONE DELLA VELOCITÀ DI ALMENO 10 VOLTE
+        const SIM_TIME_SCALE = 0.1;
+
+        let sigma_micro = parseFloat(sigmaRange.value); 
+        let q_nano = parseFloat(qRange.value);          
+        let m_mg = parseFloat(massRange.value);          
         let timeScale = parseFloat(speedRange.value);
 
-        // Geometria sul canvas
+        // Geometria su Canvas
         const plateWidth = 360;
         const plateHeight = 250; 
         let plateX = 50;
@@ -302,7 +305,7 @@
         let bottomPlateY = topPlateY + plateHeight;
 
         // Cinematica
-        let h_cm = parseFloat(hRange.value); // 0 = armatura -, 5 = armatura +
+        let h_cm = parseFloat(hRange.value); 
         let v_mps = 0.0;
         let t_sec = 0.0;
         let running = false;
@@ -310,7 +313,6 @@
         let isDragging = false;
 
         function getEField() {
-            // E = sigma / eps0
             let sigma_coulomb = sigma_micro * 1e-6;
             return sigma_coulomb / eps0; // V/m
         }
@@ -353,7 +355,7 @@
             qVal.style.color = q_nano > 0 ? "#ef4444" : (q_nano < 0 ? "#3b82f6" : "#cbd5e1");
             massVal.innerText = m_mg.toFixed(1) + " mg";
             hVal.innerText = h_cm.toFixed(1) + " cm";
-            speedVal.innerText = timeScale.toFixed(1) + "x" + (timeScale < 1 ? " (Rall.)" : " (Norm.)");
+            speedVal.innerText = timeScale.toFixed(2) + "x" + (timeScale < 1 ? " (Rall.)" : "");
 
             updateDataPanel();
             drawScene();
@@ -365,10 +367,9 @@
             let q_coulomb = q_nano * 1e-9;
             let m_kg = m_mg * 1e-6;
 
-            let Fe_mN = (q_coulomb * E_val) * 1e3; // millinewton
+            let Fe_mN = (q_coulomb * E_val) * 1e3; 
             let V_volt = E_val * h_m;
 
-            // Energia potenziale elettrica (in microjoule)
             let U_microJ;
             if (q_nano >= 0) {
                 U_microJ = (q_coulomb * E_val * h_m) * 1e6;
@@ -410,11 +411,10 @@
             ctx.fillStyle = "#ffffff";
             ctx.fillText("- - - - Armatura Negativa (-σ, V = 0 V rif.) - - - -", plateX + 10, bottomPlateY + 11);
 
-            // 3. Linee del Campo Elettrico E (verticali orientate verso il basso)
+            // 3. Linee del Campo Elettrico E
             ctx.strokeStyle = "rgba(56, 189, 248, 0.45)";
             ctx.fillStyle = "rgba(56, 189, 248, 0.45)";
             ctx.lineWidth = 1.4;
-            // Densità visiva delle linee regolata leggermente in base a sigma
             let lineSpacing = Math.max(30, 60 - sigma_micro * 10);
             for (let lx = plateX + 25; lx < plateX + plateWidth; lx += lineSpacing) {
                 ctx.beginPath();
@@ -431,7 +431,7 @@
             ctx.font = "bold 11px sans-serif";
             ctx.fillText("E = σ/ε₀", plateX + 10, topPlateY + 20);
 
-            // 4. Linee Equipotenziali (orizzontali, tratteggiate)
+            // 4. Linee Equipotenziali
             ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
             ctx.lineWidth = 1;
             ctx.setLineDash([4, 4]);
@@ -450,18 +450,16 @@
             }
             ctx.setLineDash([]);
 
-            // 5. Particella Carica (si muove lungo la retta verticale)
+            // 5. Particella Carica
             let chargeX = plateX + plateWidth / 2 - 20;
             let chargeY = hToY(h_cm);
             let radius = 13;
 
-            // Alone
             ctx.fillStyle = q_nano > 0 ? "rgba(239, 68, 68, 0.3)" : (q_nano < 0 ? "rgba(59, 130, 246, 0.3)" : "rgba(148, 163, 184, 0.2)");
             ctx.beginPath();
             ctx.arc(chargeX, chargeY, radius + 4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Sfera
             ctx.fillStyle = q_nano > 0 ? "#ef4444" : (q_nano < 0 ? "#3b82f6" : "#64748b");
             ctx.beginPath();
             ctx.arc(chargeX, chargeY, radius, 0, Math.PI * 2);
@@ -470,7 +468,6 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // Simbolo
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 11px sans-serif";
             ctx.textAlign = "center";
@@ -479,7 +476,6 @@
             ctx.textAlign = "left";
             ctx.textBaseline = "alphabetic";
 
-            // Vettore forza F = q * E
             if (q_nano !== 0) {
                 let arrowDir = q_nano > 0 ? 1 : -1;
                 let fLen = 28;
@@ -499,14 +495,14 @@
                 ctx.fillText("F = q·E", chargeX + 8, startArrowY + arrowDir * 14);
             }
 
-            // 6. Barre delle Energie a destra
+            // 6. Barre delle Energie
             let barX = canvas.width - 150;
             if (barX < plateX + plateWidth + 120) barX = plateX + plateWidth + 120;
             let barY = topPlateY + 15;
             let barMaxWidth = 85;
 
             let q_c = Math.abs(q_nano) * 1e-9;
-            let maxU = (q_c * E_val * d_meters) * 1e6; // microJoule
+            let maxU = (q_c * E_val * d_meters) * 1e6;
             let scaleBar = maxU > 0 ? barMaxWidth / maxU : 1;
 
             let h_m = h_cm / 100.0;
@@ -524,7 +520,7 @@
                 ctx.fillStyle = "#f8fafc";
                 ctx.fillText("Bilancio Energetico:", barX, barY);
 
-                // U - Potenziale (Arancione)
+                // U
                 ctx.fillStyle = "#cbd5e1";
                 ctx.font = "10px sans-serif";
                 ctx.fillText("U (Potenziale)", barX, barY + 20);
@@ -535,7 +531,7 @@
                 ctx.fillStyle = "#f8fafc";
                 ctx.fillText(curU.toFixed(1) + " μJ", barX + barMaxWidth + 6, barY + 34);
 
-                // K - Cinetica (Verde)
+                // K
                 ctx.fillStyle = "#cbd5e1";
                 ctx.fillText("K (Cinetica)", barX, barY + 54);
                 ctx.fillStyle = "#334155";
@@ -545,7 +541,7 @@
                 ctx.fillStyle = "#f8fafc";
                 ctx.fillText(curK.toFixed(1) + " μJ", barX + barMaxWidth + 6, barY + 68);
 
-                // Etot - Totale (Ciano)
+                // Etot
                 ctx.fillStyle = "#cbd5e1";
                 ctx.fillText("E_tot (Totale)", barX, barY + 88);
                 ctx.fillStyle = "#334155";
@@ -572,7 +568,7 @@
             ctx.restore();
         }
 
-        // Loop di simulazione fisica
+        // Loop di simulazione fisica con velocità ridotta di 10x
         let lastTime = null;
         function animate(timestamp) {
             if (!lastTime) lastTime = timestamp;
@@ -588,17 +584,19 @@
                 // Accelerazione a = (q*E)/m
                 let a_mps2 = (q_c * E_val) / m_kg;
 
-                t_sec += dt * timeScale;
-                v_mps += a_mps2 * (dt * timeScale);
+                // Delta tempo scalato di 10x per osservazione rallentata e fluida
+                let effectiveDt = dt * timeScale * SIM_TIME_SCALE;
 
-                // Movimento verticale
+                t_sec += effectiveDt;
+                v_mps += a_mps2 * effectiveDt;
+
                 if (q_nano >= 0) {
-                    h_cm -= (v_mps * (dt * timeScale)) * 100.0;
+                    h_cm -= (v_mps * effectiveDt) * 100.0;
                 } else {
-                    h_cm += (Math.abs(v_mps) * (dt * timeScale)) * 100.0;
+                    h_cm += (Math.abs(v_mps) * effectiveDt) * 100.0;
                 }
 
-                // Collisione con le armature
+                // Collisione
                 if (q_nano >= 0 && h_cm <= 0) {
                     h_cm = 0;
                     running = false;
@@ -616,7 +614,7 @@
             }
         }
 
-        // Drag & drop verticale della carica
+        // Drag & drop
         canvas.addEventListener('mousedown', (e) => {
             if (running) return;
             const rect = canvas.getBoundingClientRect();
