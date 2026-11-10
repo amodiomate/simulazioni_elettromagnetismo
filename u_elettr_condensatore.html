@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulazione: Moto di una Carica nel Condensatore Piano</title>
+    <title>Simulazione: Energia Potenziale Elettrica nel Condensatore Piano</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -156,16 +156,16 @@
 
     <header>
         <div>
-            <h1><span>⚡</span> Moto di una Carica nel Condensatore Piano</h1>
+            <h1><span>⚡</span> Energia Potenziale Elettrica nel Condensatore Piano</h1>
             <p>E = &sigma; / &epsilon;<sub>0</sub> &nbsp;|&nbsp; U = q &middot; E &middot; h &nbsp;|&nbsp; E<sub>tot</sub> = cost.</p>
         </div>
         <div class="badge">
-            E = &sigma; / &epsilon;<sub>0</sub> &nbsp;|&nbsp; F = q &middot; E
+            F = q &middot; E &nbsp;|&nbsp; U = q &middot; E &middot; h
         </div>
     </header>
 
     <div class="main-container">
-        <!-- CANVAS A SINISTRA -->
+        <!-- WORKSPACE CANVAS A SINISTRA -->
         <main class="workspace">
             <canvas id="simCanvas"></canvas>
             <div class="hint">🖐️ Trascina verticalmente la carica tra le armature per impostare la posizione di partenza</div>
@@ -197,13 +197,13 @@
                 <!-- Slider Posizione Iniziale h0 -->
                 <div class="control-group">
                     <div class="control-row">
-                        <span>Quota iniziale (h<sub>0</sub>):</span>
+                        <span>Distanza rif. iniziale (h<sub>0</sub>):</span>
                         <span id="hVal" style="color: #a78bfa; font-weight: bold;">4.0 cm</span>
                     </div>
                     <input type="range" id="hRange" min="0.5" max="4.5" step="0.5" value="4.0">
                 </div>
 
-                <!-- Slider Velocità Animazione (da 0.01x a 0.05x con regolazione in tempo reale) -->
+                <!-- Slider Velocità Animazione (Massimo fissato a 0.05x) -->
                 <div class="control-group">
                     <div class="control-row">
                         <span>Rallentatore Animazione:</span>
@@ -227,10 +227,9 @@
                 </div>
                 <div class="data-row"><span style="color: #94a3b8;">Campo (E = &sigma;/&epsilon;<sub>0</sub>):</span> <span id="valE" style="color: #38bdf8;">113 kV/m</span></div>
                 <div class="data-row"><span style="color: #94a3b8;">Tempo (t):</span> <span id="valT">0.00 s</span></div>
-                <div class="data-row"><span style="color: #94a3b8;">Posizione (h):</span> <span id="valH" style="color: #a78bfa; font-weight: bold;">4.00 cm</span></div>
+                <div class="data-row"><span style="color: #94a3b8;">Distanza rif. (h):</span> <span id="valH" style="color: #a78bfa; font-weight: bold;">4.00 cm</span></div>
                 <div class="data-row"><span style="color: #94a3b8;">Velocit&agrave; (v):</span> <span id="valV">0.00 m/s</span></div>
                 <div class="data-row"><span style="color: #94a3b8;">Forza (F = q&middot;E):</span> <span id="valF" style="color: #cbd5e1;">0.11 mN</span></div>
-                <div class="data-row"><span style="color: #94a3b8;">Potenziale (V = E&middot;h):</span> <span id="valPot" style="color: #fbbf24;">4.5 kV</span></div>
                 <div class="data-row" style="border-top: 1px solid #1e293b; padding-top: 2px; margin-top: 1px;">
                     <span style="color: #fb923c; font-weight: bold;">U (Potenziale):</span> 
                     <span id="valU" style="color: #fb923c; font-weight: bold;">4.5 &mu;J</span>
@@ -269,12 +268,11 @@
         const valH = document.getElementById('valH');
         const valV = document.getElementById('valV');
         const valF = document.getElementById('valF');
-        const valPot = document.getElementById('valPot');
         const valU = document.getElementById('valU');
         const valK = document.getElementById('valK');
         const valEtot = document.getElementById('valEtot');
 
-        // Costanti fisiche reali
+        // Costanti fisiche
         const eps0 = 8.854e-12; // C^2 / (N m^2)
         const d_meters = 0.05;  // 5 cm di separazione tra le armature
 
@@ -299,7 +297,7 @@
 
         function getEField() {
             let sigma_coulomb = sigma_micro * 1e-6;
-            return sigma_coulomb / eps0; // V/m
+            return sigma_coulomb / eps0; // N/C
         }
 
         function resizeCanvas() {
@@ -350,8 +348,8 @@
             let q_coulomb = q_nano * 1e-9;
 
             let Fe_mN = (q_coulomb * E_val) * 1e3; 
-            let V_volt = E_val * h_m;
 
+            // U = q * E * h
             let U_microJ;
             let initial_h_m = parseFloat(hRange.value) / 100.0;
             let delta_h_m;
@@ -373,7 +371,6 @@
             valH.innerText = h_cm.toFixed(2) + " cm";
             valV.innerText = Math.abs(v_mps).toFixed(2) + " m/s";
             valF.innerText = Math.abs(Fe_mN).toFixed(2) + " mN";
-            valPot.innerText = (V_volt >= 1000) ? (V_volt / 1000).toFixed(1) + " kV" : V_volt.toFixed(1) + " V";
             valU.innerText = U_microJ.toFixed(1) + " μJ";
             valK.innerText = K_microJ.toFixed(1) + " μJ";
             valEtot.innerText = Etot_microJ.toFixed(1) + " μJ";
@@ -383,23 +380,21 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             let E_val = getEField();
-            let deltaV = E_val * d_meters;
-            let strDeltaV = (deltaV >= 1000) ? (deltaV / 1000).toFixed(1) + " kV" : deltaV.toFixed(0) + " V";
 
             // 1. Armatura Superiore (+)
             ctx.fillStyle = "#ef4444";
             ctx.fillRect(plateX, topPlateY - 14, plateWidth, 14);
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 11px sans-serif";
-            ctx.fillText("+ + + + Armatura Positiva (+σ, V = " + strDeltaV + ") + + + +", plateX + 10, topPlateY - 3);
+            ctx.fillText("+ + + + Armatura Positiva (+σ) + + + +", plateX + 15, topPlateY - 3);
 
             // 2. Armatura Inferiore (-)
             ctx.fillStyle = "#3b82f6";
             ctx.fillRect(plateX, bottomPlateY, plateWidth, 14);
             ctx.fillStyle = "#ffffff";
-            ctx.fillText("- - - - Armatura Negativa (-σ, V = 0 V rif.) - - - -", plateX + 10, bottomPlateY + 11);
+            ctx.fillText("- - - - Armatura Negativa (-σ) - - - -", plateX + 15, bottomPlateY + 11);
 
-            // 3. Linee del Campo Elettrico E
+            // 3. Linee del Campo Elettrico E (verticali orientate verso il basso)
             ctx.strokeStyle = "rgba(56, 189, 248, 0.45)";
             ctx.fillStyle = "rgba(56, 189, 248, 0.45)";
             ctx.lineWidth = 1.4;
@@ -419,28 +414,23 @@
             ctx.font = "bold 11px sans-serif";
             ctx.fillText("E = σ/ε₀", plateX + 10, topPlateY + 20);
 
-            // 4. Linee Equipotenziali
-            ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
-            ctx.lineWidth = 1;
-            ctx.setLineDash([4, 4]);
-            for (let step = 1; step <= 4; step++) {
-                let yIso = hToY(step);
-                ctx.beginPath();
-                ctx.moveTo(plateX, yIso);
-                ctx.lineTo(plateX + plateWidth, yIso);
-                ctx.stroke();
-
-                let vStep = E_val * (step * 0.01);
-                let strVStep = (vStep >= 1000) ? (vStep / 1000).toFixed(1) + " kV" : vStep.toFixed(0) + " V";
-                ctx.fillStyle = "#94a3b8";
-                ctx.font = "10px monospace";
-                ctx.fillText("h=" + step + "cm | V=" + strVStep, plateX + plateWidth + 8, yIso + 3);
-            }
+            // 4. Quota h rispetto all'armatura di riferimento
+            ctx.strokeStyle = "rgba(167, 139, 250, 0.5)";
+            ctx.setLineDash([3, 3]);
+            let yRef = hToY(h_cm);
+            ctx.beginPath();
+            ctx.moveTo(plateX, yRef);
+            ctx.lineTo(plateX + plateWidth, yRef);
+            ctx.stroke();
             ctx.setLineDash([]);
+
+            ctx.fillStyle = "#a78bfa";
+            ctx.font = "10px monospace";
+            ctx.fillText("h = " + h_cm.toFixed(1) + " cm", plateX + plateWidth + 8, yRef + 3);
 
             // 5. Particella Carica
             let chargeX = plateX + plateWidth / 2 - 20;
-            let chargeY = hToY(h_cm);
+            let chargeY = yRef;
             let radius = 13;
 
             // Alone
@@ -564,7 +554,7 @@
             ctx.restore();
         }
 
-        // Loop di simulazione fisica: ACCELERAZIONE RIGOROSAMENTE PROPORZIONALE A q, sigma E timeScale
+        // Loop di simulazione fisica
         let lastTime = null;
         function animate(timestamp) {
             if (!lastTime) lastTime = timestamp;
@@ -573,17 +563,13 @@
             lastTime = timestamp;
 
             if (running) {
-                // Accelerazione reale: proporzionale a |q| (in nC) e a sigma (in μC/m²)
-                // Valore base 1.2 m/s² quando q = 1 nC e sigma = 1 μC/m²
+                // Accelerazione reale proporzionale a |q| e sigma
                 let a_phys = 1.2 * Math.abs(q_nano) * sigma_micro;
-
-                // Il tempo simulato effettivo scala direttamente con lo slider timeScale
                 let dt_eff = dt * timeScale;
 
                 t_sec += dt_eff;
                 v_mps += a_phys * dt_eff;
 
-                // Spostamento in cm lungo la coordinata h
                 let dh_cm = (v_mps * dt_eff) * 100.0;
 
                 if (q_nano >= 0) {
@@ -592,7 +578,7 @@
                     h_cm += dh_cm;
                 }
 
-                // Controllo urto sulle armature
+                // Controllo urto
                 if (q_nano >= 0 && h_cm <= 0) {
                     h_cm = 0;
                     running = false;
@@ -637,7 +623,6 @@
 
         window.addEventListener('mouseup', () => { isDragging = false; });
 
-        // Event listener che aggiornano la cinematica istantaneamente
         sigmaRange.addEventListener('input', updateValuesFromUI);
         qRange.addEventListener('input', updateValuesFromUI);
         hRange.addEventListener('input', updateValuesFromUI);
@@ -645,7 +630,6 @@
 
         btnStart.addEventListener('click', () => {
             if (!running) {
-                // Se la carica è già arrivata a fondo corsa, resetta prima di ripartire
                 if ((q_nano >= 0 && h_cm <= 0) || (q_nano < 0 && h_cm >= 5.0)) {
                     h_cm = parseFloat(hRange.value);
                     v_mps = 0.0;
