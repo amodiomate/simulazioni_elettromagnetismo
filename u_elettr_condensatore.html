@@ -88,7 +88,7 @@
             display: flex;
             flex-direction: column;
             gap: 3px;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }
         .control-row {
             display: flex;
@@ -106,10 +106,10 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 4px;
-            margin-top: 2px;
+            margin-top: 4px;
         }
         button {
-            padding: 5px;
+            padding: 6px 4px;
             font-size: 10px;
             font-weight: bold;
             border: none;
@@ -132,7 +132,7 @@
             font-size: 10px;
             display: flex;
             flex-direction: column;
-            gap: 2.5px;
+            gap: 3px;
         }
         .data-row {
             display: flex;
@@ -157,7 +157,7 @@
     <header>
         <div>
             <h1><span>⚡</span> Moto di una Carica nel Condensatore Piano</h1>
-            <p>E = &sigma; / &epsilon;<sub>0</sub> &nbsp;|&nbsp; U = q &middot; E &middot; h &nbsp;|&nbsp; E_{tot} = cost.</p>
+            <p>E = &sigma; / &epsilon;<sub>0</sub> &nbsp;|&nbsp; U = q &middot; E &middot; h &nbsp;|&nbsp; E<sub>tot</sub> = cost.</p>
         </div>
         <div class="badge">
             E = &sigma; / &epsilon;<sub>0</sub> &nbsp;|&nbsp; F = q &middot; E
@@ -194,15 +194,6 @@
                     <input type="range" id="qRange" min="-5.0" max="5.0" step="0.5" value="1.0">
                 </div>
 
-                <!-- Slider Massa -->
-                <div class="control-group">
-                    <div class="control-row">
-                        <span>Massa della carica (m):</span>
-                        <span id="massVal" style="color: #fbbf24; font-weight: bold;">1.0 mg</span>
-                    </div>
-                    <input type="range" id="massRange" min="0.5" max="3.0" step="0.5" value="1.0">
-                </div>
-
                 <!-- Slider Posizione Iniziale h0 -->
                 <div class="control-group">
                     <div class="control-row">
@@ -212,13 +203,13 @@
                     <input type="range" id="hRange" min="0.5" max="4.5" step="0.5" value="4.0">
                 </div>
 
-                <!-- Slider Velocità Animazione (Rallentatore espanso fino a 0.05x) -->
+                <!-- Slider Velocità Animazione (da 0.01x a 0.05x con regolazione in tempo reale) -->
                 <div class="control-group">
                     <div class="control-row">
-                        <span>Velocità Animazione:</span>
-                        <span id="speedVal" style="color: #34d399; font-weight: bold;">1.0x</span>
+                        <span>Rallentatore Animazione:</span>
+                        <span id="speedVal" style="color: #34d399; font-weight: bold;">0.025x</span>
                     </div>
-                    <input type="range" id="speedRange" min="0.05" max="1.0" step="0.05" value="1.0">
+                    <input type="range" id="speedRange" min="0.005" max="0.050" step="0.005" value="0.025">
                 </div>
 
                 <!-- Pulsanti -->
@@ -264,8 +255,6 @@
         const sigmaVal = document.getElementById('sigmaVal');
         const qRange = document.getElementById('qRange');
         const qVal = document.getElementById('qVal');
-        const massRange = document.getElementById('massRange');
-        const massVal = document.getElementById('massVal');
         const hRange = document.getElementById('hRange');
         const hVal = document.getElementById('hVal');
         const speedRange = document.getElementById('speedRange');
@@ -287,14 +276,10 @@
 
         // Costanti fisiche reali
         const eps0 = 8.854e-12; // C^2 / (N m^2)
-        const d_meters = 0.05;  // 5 cm di separazione
-
-        // FATTORE DI RIDUZIONE DELLA VELOCITÀ DI ALMENO 10 VOLTE
-        const SIM_TIME_SCALE = 0.1;
+        const d_meters = 0.05;  // 5 cm di separazione tra le armature
 
         let sigma_micro = parseFloat(sigmaRange.value); 
         let q_nano = parseFloat(qRange.value);          
-        let m_mg = parseFloat(massRange.value);          
         let timeScale = parseFloat(speedRange.value);
 
         // Geometria su Canvas
@@ -304,7 +289,7 @@
         let topPlateY = 80;
         let bottomPlateY = topPlateY + plateHeight;
 
-        // Cinematica
+        // Cinematica: quota h espressa in centimetri (0 = armatura -, 5 = armatura +)
         let h_cm = parseFloat(hRange.value); 
         let v_mps = 0.0;
         let t_sec = 0.0;
@@ -341,7 +326,6 @@
         function updateValuesFromUI() {
             sigma_micro = parseFloat(sigmaRange.value);
             q_nano = parseFloat(qRange.value);
-            m_mg = parseFloat(massRange.value);
             timeScale = parseFloat(speedRange.value);
 
             if (!running) {
@@ -353,9 +337,8 @@
             sigmaVal.innerText = sigma_micro.toFixed(1) + " μC/m²";
             qVal.innerText = (q_nano > 0 ? "+" : "") + q_nano.toFixed(1) + " nC";
             qVal.style.color = q_nano > 0 ? "#ef4444" : (q_nano < 0 ? "#3b82f6" : "#cbd5e1");
-            massVal.innerText = m_mg.toFixed(1) + " mg";
             hVal.innerText = h_cm.toFixed(1) + " cm";
-            speedVal.innerText = timeScale.toFixed(2) + "x" + (timeScale < 1 ? " (Rall.)" : "");
+            speedVal.innerText = timeScale.toFixed(3) + "x";
 
             updateDataPanel();
             drawScene();
@@ -365,19 +348,24 @@
             let E_val = getEField();
             let h_m = h_cm / 100.0;
             let q_coulomb = q_nano * 1e-9;
-            let m_kg = m_mg * 1e-6;
 
             let Fe_mN = (q_coulomb * E_val) * 1e3; 
             let V_volt = E_val * h_m;
 
             let U_microJ;
+            let initial_h_m = parseFloat(hRange.value) / 100.0;
+            let delta_h_m;
+
             if (q_nano >= 0) {
                 U_microJ = (q_coulomb * E_val * h_m) * 1e6;
+                delta_h_m = Math.max(0, initial_h_m - h_m);
             } else {
                 U_microJ = (Math.abs(q_coulomb) * E_val * (d_meters - h_m)) * 1e6;
+                delta_h_m = Math.max(0, h_m - initial_h_m);
             }
 
-            let K_microJ = (0.5 * m_kg * v_mps * v_mps) * 1e6;
+            // K = W = F * delta_h
+            let K_microJ = (Math.abs(q_coulomb) * E_val * delta_h_m) * 1e6;
             let Etot_microJ = U_microJ + K_microJ;
 
             valE.innerText = (E_val >= 1000) ? (E_val / 1000).toFixed(0) + " kV/m" : E_val.toFixed(0) + " V/m";
@@ -415,7 +403,7 @@
             ctx.strokeStyle = "rgba(56, 189, 248, 0.45)";
             ctx.fillStyle = "rgba(56, 189, 248, 0.45)";
             ctx.lineWidth = 1.4;
-            let lineSpacing = Math.max(30, 60 - sigma_micro * 10);
+            let lineSpacing = Math.max(28, 56 - sigma_micro * 8);
             for (let lx = plateX + 25; lx < plateX + plateWidth; lx += lineSpacing) {
                 ctx.beginPath();
                 ctx.moveTo(lx, topPlateY);
@@ -455,11 +443,13 @@
             let chargeY = hToY(h_cm);
             let radius = 13;
 
+            // Alone
             ctx.fillStyle = q_nano > 0 ? "rgba(239, 68, 68, 0.3)" : (q_nano < 0 ? "rgba(59, 130, 246, 0.3)" : "rgba(148, 163, 184, 0.2)");
             ctx.beginPath();
             ctx.arc(chargeX, chargeY, radius + 4, 0, Math.PI * 2);
             ctx.fill();
 
+            // Sfera
             ctx.fillStyle = q_nano > 0 ? "#ef4444" : (q_nano < 0 ? "#3b82f6" : "#64748b");
             ctx.beginPath();
             ctx.arc(chargeX, chargeY, radius, 0, Math.PI * 2);
@@ -468,6 +458,7 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
+            // Simbolo
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 11px sans-serif";
             ctx.textAlign = "center";
@@ -502,17 +493,22 @@
             let barMaxWidth = 85;
 
             let q_c = Math.abs(q_nano) * 1e-9;
-            let maxU = (q_c * E_val * d_meters) * 1e6;
+            let maxU = (q_c * E_val * d_meters) * 1e6; 
             let scaleBar = maxU > 0 ? barMaxWidth / maxU : 1;
 
             let h_m = h_cm / 100.0;
+            let initial_h_m = parseFloat(hRange.value) / 100.0;
             let curU;
+            let delta_h_m;
+
             if (q_nano >= 0) {
                 curU = (q_c * E_val * h_m) * 1e6;
+                delta_h_m = Math.max(0, initial_h_m - h_m);
             } else {
                 curU = (q_c * E_val * (d_meters - h_m)) * 1e6;
+                delta_h_m = Math.max(0, h_m - initial_h_m);
             }
-            let curK = (0.5 * (m_mg * 1e-6) * (v_mps * v_mps)) * 1e6;
+            let curK = (q_c * E_val * delta_h_m) * 1e6;
             let curEtot = curU + curK;
 
             if (canvas.width > 680) {
@@ -568,7 +564,7 @@
             ctx.restore();
         }
 
-        // Loop di simulazione fisica con velocità ridotta di 10x
+        // Loop di simulazione fisica: ACCELERAZIONE RIGOROSAMENTE PROPORZIONALE A q, sigma E timeScale
         let lastTime = null;
         function animate(timestamp) {
             if (!lastTime) lastTime = timestamp;
@@ -577,26 +573,26 @@
             lastTime = timestamp;
 
             if (running) {
-                let E_val = getEField();
-                let m_kg = m_mg * 1e-6;
-                let q_c = q_nano * 1e-9;
+                // Accelerazione reale: proporzionale a |q| (in nC) e a sigma (in μC/m²)
+                // Valore base 1.2 m/s² quando q = 1 nC e sigma = 1 μC/m²
+                let a_phys = 1.2 * Math.abs(q_nano) * sigma_micro;
 
-                // Accelerazione a = (q*E)/m
-                let a_mps2 = (q_c * E_val) / m_kg;
+                // Il tempo simulato effettivo scala direttamente con lo slider timeScale
+                let dt_eff = dt * timeScale;
 
-                // Delta tempo scalato di 10x per osservazione rallentata e fluida
-                let effectiveDt = dt * timeScale * SIM_TIME_SCALE;
+                t_sec += dt_eff;
+                v_mps += a_phys * dt_eff;
 
-                t_sec += effectiveDt;
-                v_mps += a_mps2 * effectiveDt;
+                // Spostamento in cm lungo la coordinata h
+                let dh_cm = (v_mps * dt_eff) * 100.0;
 
                 if (q_nano >= 0) {
-                    h_cm -= (v_mps * effectiveDt) * 100.0;
+                    h_cm -= dh_cm;
                 } else {
-                    h_cm += (Math.abs(v_mps) * effectiveDt) * 100.0;
+                    h_cm += dh_cm;
                 }
 
-                // Collisione
+                // Controllo urto sulle armature
                 if (q_nano >= 0 && h_cm <= 0) {
                     h_cm = 0;
                     running = false;
@@ -641,14 +637,15 @@
 
         window.addEventListener('mouseup', () => { isDragging = false; });
 
+        // Event listener che aggiornano la cinematica istantaneamente
         sigmaRange.addEventListener('input', updateValuesFromUI);
         qRange.addEventListener('input', updateValuesFromUI);
-        massRange.addEventListener('input', updateValuesFromUI);
         hRange.addEventListener('input', updateValuesFromUI);
         speedRange.addEventListener('input', updateValuesFromUI);
 
         btnStart.addEventListener('click', () => {
             if (!running) {
+                // Se la carica è già arrivata a fondo corsa, resetta prima di ripartire
                 if ((q_nano >= 0 && h_cm <= 0) || (q_nano < 0 && h_cm >= 5.0)) {
                     h_cm = parseFloat(hRange.value);
                     v_mps = 0.0;
