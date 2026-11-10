@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulazione: Moto di una Carica nel Condensatore Piano</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+            padding: 8px;
+            overflow: hidden;
+        }
+        header {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        header h1 { font-size: 14px; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+        header p { font-size: 10px; color: #94a3b8; }
+        .badge {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            flex-grow: 1;
+            gap: 8px;
+            min-height: 0;
+            width: 100%;
+        }
+        .workspace {
+            flex-grow: 1;
+            background-color: #020617;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 0;
+        }
+        canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+        aside {
+            width: 300px;
+            min-width: 300px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 6px;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+        .section-title {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #38bdf8;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 3px;
+            margin-bottom: 6px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-bottom: 5px;
+        }
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+        input[type="range"] {
+            width: 100%;
+            accent-color: #38bdf8;
+            cursor: pointer;
+        }
+        .btn-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-top: 2px;
+        }
+        button {
+            padding: 5px;
+            font-size: 10px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        #btnStart { background-color: #16a34a; }
+        #btnPause { background-color: #d97706; }
+        #btnReset { background-color: #dc2626; }
+        
+        .data-panel {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 6px;
+            font-family: monospace;
+            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5px;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .hint {
+            position: absolute;
+            bottom: 6px;
+            left: 6px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155;
+            color: #94a3b8;
+            font-size: 9px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1><span>⚡</span> Moto di una Carica nel Condensatore Piano</h1>
+            <p>E = &sigma; / &epsilon;<sub>0</sub> &nbsp;|&nbsp; U = q &middot; E &middot; h &nbsp;|&nbsp; E_{tot} = cost.</p>
+        </div>
+        <div class="badge">
+            E = &sigma; / &epsilon;<sub>0</sub> &nbsp;|&nbsp; F = q &middot; E
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- CANVAS A SINISTRA -->
+        <main class="workspace">
+            <canvas id="simCanvas"></canvas>
+            <div class="hint">🖐️ Trascina verticalmente la carica tra le armature per impostare la posizione di partenza</div>
+        </main>
+
+        <!-- CONTROLLI E LETTURE A DESTRA -->
+        <aside>
+            <div>
+                <div class="section-title">Parametri del Sistema</div>
+
+                <!-- Slider Densità di Carica sigma -->
+                <div class="control-group">
+                    <div class="control-row">
+                        <span>Densità di carica (&sigma;):</span>
+                        <span id="sigmaVal" style="color: #38bdf8; font-weight: bold;">1.0 &mu;C/m&sup2;</span>
+                    </div>
+                    <input type="range" id="sigmaRange" min="0.2" max="3.0" step="0.2" value="1.0">
+                </div>
+
+                <!-- Slider Carica di prova in nC -->
+                <div class="control-group">
+                    <div class="control-row">
+                        <span>Carica di prova (q):</span>
+                        <span id="qVal" style="color: #ef4444; font-weight: bold;">+1.0 nC</span>
+                    </div>
+                    <input type="range" id="qRange" min="-5.0" max="5.0" step="0.5" value="1.0">
+                </div>
+
+                <!-- Slider Massa -->
+                <div class="control-group">
+                    <div class="control-row">
+                        <span>Massa della carica (m):</span>
+                        <span id="massVal" style="color: #fbbf24; font-weight: bold;">1.0 mg</span>
+                    </div>
+                    <input type="range" id="massRange" min="0.5" max="3.0" step="0.5" value="1.0">
+                </div>
+
+                <!-- Slider Posizione Iniziale h0 -->
+                <div class="control-group">
+                    <div class="control-row">
+                        <span>Quota iniziale (h<sub>0</sub>):</span>
+                        <span id="hVal" style="color: #a78bfa; font-weight: bold;">4.0 cm</span>
+                    </div>
+                    <input type="range" id="hRange" min="0.5" max="4.5" step="0.5" value="4.0">
+                </div>
+
+                <!-- Slider Velocità Animazione -->
+                <div class="control-group">
+                    <div class="control-row">
+                        <span>Velocità Animazione:</span>
+                        <span id="speedVal" style="color: #34d399; font-weight: bold;">1.0x (Normale)</span>
+                    </div>
+                    <input type="range" id="speedRange" min="0.1" max="1.0" step="0.1" value="1.0">
+                </div>
+
+                <!-- Pulsanti -->
+                <div class="btn-container">
+                    <button id="btnStart">Avvia</button>
+                    <button id="btnPause">Pausa</button>
+                    <button id="btnReset">Reset</button>
+                </div>
+            </div>
+
+            <!-- PANNELLO DATI DINAMICI -->
+            <div class="data-panel">
+                <div style="font-family: sans-serif; font-weight: bold; color: #94a3b8; border-bottom: 1px solid #1e293b; padding-bottom: 2px; margin-bottom: 1px;">
+                    📊 Letture in tempo reale
+                </div>
+                <div class="data-row"><span style="color: #94a3b8;">Campo (E = &sigma;/&epsilon;<sub>0</sub>):</span> <span id="valE" style="color: #38bdf8;">113 kV/m</span></div>
+                <div class="data-row"><span style="color: #94a3b8;">Tempo (t):</span> <span id="valT">0.00 s</span></div>
+                <div class="data-row"><span style="color: #94a3b8;">Posizione (h):</span> <span id="valH" style="color: #a78bfa; font-weight: bold;">4.00 cm</span></div>
+                <div class="data-row"><span style="color: #94a3b8;">Velocit&agrave; (v):</span> <span id="valV">0.00 m/s</span></div>
+                <div class="data-row"><span style="color: #94a3b8;">Forza (F = q&middot;E):</span> <span id="valF" style="color: #cbd5e1;">0.11 mN</span></div>
+                <div class="data-row"><span style="color: #94a3b8;">Potenziale (V = E&middot;h):</span> <span id="valPot" style="color: #fbbf24;">4.5 kV</span></div>
+                <div class="data-row" style="border-top: 1px solid #1e293b; padding-top: 2px; margin-top: 1px;">
+                    <span style="color: #fb923c; font-weight: bold;">U (Potenziale):</span> 
+                    <span id="valU" style="color: #fb923c; font-weight: bold;">4.5 &mu;J</span>
+                </div>
+                <div class="data-row">
+                    <span style="color: #34d399; font-weight: bold;">K (Cinetica):</span> 
+                    <span id="valK" style="color: #34d399; font-weight: bold;">0.0 &mu;J</span>
+                </div>
+                <div class="data-row" style="border-top: 1px solid #1e293b; padding-top: 2px; margin-top: 1px;">
+                    <span style="color: #22d3ee; font-weight: bold;">E<sub>tot</sub> (Mecc.):</span> 
+                    <span id="valEtot" style="color: #22d3ee; font-weight: bold;">4.5 &mu;J</span>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const sigmaRange = document.getElementById('sigmaRange');
+        const sigmaVal = document.getElementById('sigmaVal');
+        const qRange = document.getElementById('qRange');
+        const qVal = document.getElementById('qVal');
+        const massRange = document.getElementById('massRange');
+        const massVal = document.getElementById('massVal');
+        const hRange = document.getElementById('hRange');
+        const hVal = document.getElementById('hVal');
+        const speedRange = document.getElementById('speedRange');
+        const speedVal = document.getElementById('speedVal');
+
+        const btnStart = document.getElementById('btnStart');
+        const btnPause = document.getElementById('btnPause');
+        const btnReset = document.getElementById('btnReset');
+
+        const valE = document.getElementById('valE');
+        const valT = document.getElementById('valT');
+        const valH = document.getElementById('valH');
+        const valV = document.getElementById('valV');
+        const valF = document.getElementById('valF');
+        const valPot = document.getElementById('valPot');
+        const valU = document.getElementById('valU');
+        const valK = document.getElementById('valK');
+        const valEtot = document.getElementById('valEtot');
+
+        // Costanti fisiche reali
+        const eps0 = 8.854e-12; // C^2 / (N m^2)
+        const d_meters = 0.05;  // 5 cm di separazione
+
+        let sigma_micro = parseFloat(sigmaRange.value); // microCoulomb / m^2
+        let q_nano = parseFloat(qRange.value);          // nanoCoulomb
+        let m_mg = parseFloat(massRange.value);          // milligrammi
+        let timeScale = parseFloat(speedRange.value);
+
+        // Geometria sul canvas
+        const plateWidth = 360;
+        const plateHeight = 250; 
+        let plateX = 50;
+        let topPlateY = 80;
+        let bottomPlateY = topPlateY + plateHeight;
+
+        // Cinematica
+        let h_cm = parseFloat(hRange.value); // 0 = armatura -, 5 = armatura +
+        let v_mps = 0.0;
+        let t_sec = 0.0;
+        let running = false;
+        let animationId = null;
+        let isDragging = false;
+
+        function getEField() {
+            // E = sigma / eps0
+            let sigma_coulomb = sigma_micro * 1e-6;
+            return sigma_coulomb / eps0; // V/m
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            plateX = 50;
+            topPlateY = (canvas.height - plateHeight) / 2;
+            bottomPlateY = topPlateY + plateHeight;
+            drawScene();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function hToY(h) {
+            return bottomPlateY - (h / 5.0) * plateHeight;
+        }
+
+        function yToH(y) {
+            let ratio = (bottomPlateY - y) / plateHeight;
+            if (ratio < 0) ratio = 0;
+            if (ratio > 1) ratio = 1;
+            return ratio * 5.0;
+        }
+
+        function updateValuesFromUI() {
+            sigma_micro = parseFloat(sigmaRange.value);
+            q_nano = parseFloat(qRange.value);
+            m_mg = parseFloat(massRange.value);
+            timeScale = parseFloat(speedRange.value);
+
+            if (!running) {
+                h_cm = parseFloat(hRange.value);
+                v_mps = 0.0;
+                t_sec = 0.0;
+            }
+
+            sigmaVal.innerText = sigma_micro.toFixed(1) + " μC/m²";
+            qVal.innerText = (q_nano > 0 ? "+" : "") + q_nano.toFixed(1) + " nC";
+            qVal.style.color = q_nano > 0 ? "#ef4444" : (q_nano < 0 ? "#3b82f6" : "#cbd5e1");
+            massVal.innerText = m_mg.toFixed(1) + " mg";
+            hVal.innerText = h_cm.toFixed(1) + " cm";
+            speedVal.innerText = timeScale.toFixed(1) + "x" + (timeScale < 1 ? " (Rall.)" : " (Norm.)");
+
+            updateDataPanel();
+            drawScene();
+        }
+
+        function updateDataPanel() {
+            let E_val = getEField();
+            let h_m = h_cm / 100.0;
+            let q_coulomb = q_nano * 1e-9;
+            let m_kg = m_mg * 1e-6;
+
+            let Fe_mN = (q_coulomb * E_val) * 1e3; // millinewton
+            let V_volt = E_val * h_m;
+
+            // Energia potenziale elettrica (in microjoule)
+            let U_microJ;
+            if (q_nano >= 0) {
+                U_microJ = (q_coulomb * E_val * h_m) * 1e6;
+            } else {
+                U_microJ = (Math.abs(q_coulomb) * E_val * (d_meters - h_m)) * 1e6;
+            }
+
+            let K_microJ = (0.5 * m_kg * v_mps * v_mps) * 1e6;
+            let Etot_microJ = U_microJ + K_microJ;
+
+            valE.innerText = (E_val >= 1000) ? (E_val / 1000).toFixed(0) + " kV/m" : E_val.toFixed(0) + " V/m";
+            valT.innerText = t_sec.toFixed(2) + " s";
+            valH.innerText = h_cm.toFixed(2) + " cm";
+            valV.innerText = Math.abs(v_mps).toFixed(2) + " m/s";
+            valF.innerText = Math.abs(Fe_mN).toFixed(2) + " mN";
+            valPot.innerText = (V_volt >= 1000) ? (V_volt / 1000).toFixed(1) + " kV" : V_volt.toFixed(1) + " V";
+            valU.innerText = U_microJ.toFixed(1) + " μJ";
+            valK.innerText = K_microJ.toFixed(1) + " μJ";
+            valEtot.innerText = Etot_microJ.toFixed(1) + " μJ";
+        }
+
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let E_val = getEField();
+            let deltaV = E_val * d_meters;
+            let strDeltaV = (deltaV >= 1000) ? (deltaV / 1000).toFixed(1) + " kV" : deltaV.toFixed(0) + " V";
+
+            // 1. Armatura Superiore (+)
+            ctx.fillStyle = "#ef4444";
+            ctx.fillRect(plateX, topPlateY - 14, plateWidth, 14);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 11px sans-serif";
+            ctx.fillText("+ + + + Armatura Positiva (+σ, V = " + strDeltaV + ") + + + +", plateX + 10, topPlateY - 3);
+
+            // 2. Armatura Inferiore (-)
+            ctx.fillStyle = "#3b82f6";
+            ctx.fillRect(plateX, bottomPlateY, plateWidth, 14);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText("- - - - Armatura Negativa (-σ, V = 0 V rif.) - - - -", plateX + 10, bottomPlateY + 11);
+
+            // 3. Linee del Campo Elettrico E (verticali orientate verso il basso)
+            ctx.strokeStyle = "rgba(56, 189, 248, 0.45)";
+            ctx.fillStyle = "rgba(56, 189, 248, 0.45)";
+            ctx.lineWidth = 1.4;
+            // Densità visiva delle linee regolata leggermente in base a sigma
+            let lineSpacing = Math.max(30, 60 - sigma_micro * 10);
+            for (let lx = plateX + 25; lx < plateX + plateWidth; lx += lineSpacing) {
+                ctx.beginPath();
+                ctx.moveTo(lx, topPlateY);
+                ctx.lineTo(lx, bottomPlateY);
+                ctx.stroke();
+
+                drawArrowHead(lx, topPlateY + plateHeight * 0.35, Math.PI / 2);
+                drawArrowHead(lx, topPlateY + plateHeight * 0.70, Math.PI / 2);
+            }
+
+            // Etichetta del campo E
+            ctx.fillStyle = "#38bdf8";
+            ctx.font = "bold 11px sans-serif";
+            ctx.fillText("E = σ/ε₀", plateX + 10, topPlateY + 20);
+
+            // 4. Linee Equipotenziali (orizzontali, tratteggiate)
+            ctx.strokeStyle = "rgba(148, 163, 184, 0.35)";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            for (let step = 1; step <= 4; step++) {
+                let yIso = hToY(step);
+                ctx.beginPath();
+                ctx.moveTo(plateX, yIso);
+                ctx.lineTo(plateX + plateWidth, yIso);
+                ctx.stroke();
+
+                let vStep = E_val * (step * 0.01);
+                let strVStep = (vStep >= 1000) ? (vStep / 1000).toFixed(1) + " kV" : vStep.toFixed(0) + " V";
+                ctx.fillStyle = "#94a3b8";
+                ctx.font = "10px monospace";
+                ctx.fillText("h=" + step + "cm | V=" + strVStep, plateX + plateWidth + 8, yIso + 3);
+            }
+            ctx.setLineDash([]);
+
+            // 5. Particella Carica (si muove lungo la retta verticale)
+            let chargeX = plateX + plateWidth / 2 - 20;
+            let chargeY = hToY(h_cm);
+            let radius = 13;
+
+            // Alone
+            ctx.fillStyle = q_nano > 0 ? "rgba(239, 68, 68, 0.3)" : (q_nano < 0 ? "rgba(59, 130, 246, 0.3)" : "rgba(148, 163, 184, 0.2)");
+            ctx.beginPath();
+            ctx.arc(chargeX, chargeY, radius + 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Sfera
+            ctx.fillStyle = q_nano > 0 ? "#ef4444" : (q_nano < 0 ? "#3b82f6" : "#64748b");
+            ctx.beginPath();
+            ctx.arc(chargeX, chargeY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Simbolo
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 11px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(q_nano > 0 ? "+q" : (q_nano < 0 ? "-q" : "0"), chargeX, chargeY);
+            ctx.textAlign = "left";
+            ctx.textBaseline = "alphabetic";
+
+            // Vettore forza F = q * E
+            if (q_nano !== 0) {
+                let arrowDir = q_nano > 0 ? 1 : -1;
+                let fLen = 28;
+                let startArrowY = chargeY + arrowDir * (radius + 2);
+                let endArrowY = startArrowY + arrowDir * fLen;
+
+                ctx.strokeStyle = "#fbbf24";
+                ctx.fillStyle = "#fbbf24";
+                ctx.lineWidth = 2.2;
+                ctx.beginPath();
+                ctx.moveTo(chargeX, startArrowY);
+                ctx.lineTo(chargeX, endArrowY);
+                ctx.stroke();
+                drawArrowHead(chargeX, endArrowY, arrowDir > 0 ? Math.PI / 2 : -Math.PI / 2);
+
+                ctx.font = "bold 10px sans-serif";
+                ctx.fillText("F = q·E", chargeX + 8, startArrowY + arrowDir * 14);
+            }
+
+            // 6. Barre delle Energie a destra
+            let barX = canvas.width - 150;
+            if (barX < plateX + plateWidth + 120) barX = plateX + plateWidth + 120;
+            let barY = topPlateY + 15;
+            let barMaxWidth = 85;
+
+            let q_c = Math.abs(q_nano) * 1e-9;
+            let maxU = (q_c * E_val * d_meters) * 1e6; // microJoule
+            let scaleBar = maxU > 0 ? barMaxWidth / maxU : 1;
+
+            let h_m = h_cm / 100.0;
+            let curU;
+            if (q_nano >= 0) {
+                curU = (q_c * E_val * h_m) * 1e6;
+            } else {
+                curU = (q_c * E_val * (d_meters - h_m)) * 1e6;
+            }
+            let curK = (0.5 * (m_mg * 1e-6) * (v_mps * v_mps)) * 1e6;
+            let curEtot = curU + curK;
+
+            if (canvas.width > 680) {
+                ctx.font = "bold 11px sans-serif";
+                ctx.fillStyle = "#f8fafc";
+                ctx.fillText("Bilancio Energetico:", barX, barY);
+
+                // U - Potenziale (Arancione)
+                ctx.fillStyle = "#cbd5e1";
+                ctx.font = "10px sans-serif";
+                ctx.fillText("U (Potenziale)", barX, barY + 20);
+                ctx.fillStyle = "#334155";
+                ctx.fillRect(barX, barY + 25, barMaxWidth, 11);
+                ctx.fillStyle = "#fb923c";
+                ctx.fillRect(barX, barY + 25, Math.min(barMaxWidth, curU * scaleBar), 11);
+                ctx.fillStyle = "#f8fafc";
+                ctx.fillText(curU.toFixed(1) + " μJ", barX + barMaxWidth + 6, barY + 34);
+
+                // K - Cinetica (Verde)
+                ctx.fillStyle = "#cbd5e1";
+                ctx.fillText("K (Cinetica)", barX, barY + 54);
+                ctx.fillStyle = "#334155";
+                ctx.fillRect(barX, barY + 59, barMaxWidth, 11);
+                ctx.fillStyle = "#34d399";
+                ctx.fillRect(barX, barY + 59, Math.min(barMaxWidth, curK * scaleBar), 11);
+                ctx.fillStyle = "#f8fafc";
+                ctx.fillText(curK.toFixed(1) + " μJ", barX + barMaxWidth + 6, barY + 68);
+
+                // Etot - Totale (Ciano)
+                ctx.fillStyle = "#cbd5e1";
+                ctx.fillText("E_tot (Totale)", barX, barY + 88);
+                ctx.fillStyle = "#334155";
+                ctx.fillRect(barX, barY + 93, barMaxWidth, 11);
+                ctx.fillStyle = "#22d3ee";
+                ctx.fillRect(barX, barY + 93, Math.min(barMaxWidth, curEtot * scaleBar), 11);
+                ctx.fillStyle = "#f8fafc";
+                ctx.fillText(curEtot.toFixed(1) + " μJ", barX + barMaxWidth + 6, barY + 102);
+            }
+        }
+
+        function drawArrowHead(x, y, angle) {
+            const headLen = 6.5;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-headLen, -headLen * 0.45);
+            ctx.lineTo(-headLen + 1.2, 0);
+            ctx.lineTo(-headLen, headLen * 0.45);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Loop di simulazione fisica
+        let lastTime = null;
+        function animate(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            let dt = (timestamp - lastTime) / 1000.0;
+            if (dt > 0.1) dt = 0.1;
+            lastTime = timestamp;
+
+            if (running) {
+                let E_val = getEField();
+                let m_kg = m_mg * 1e-6;
+                let q_c = q_nano * 1e-9;
+
+                // Accelerazione a = (q*E)/m
+                let a_mps2 = (q_c * E_val) / m_kg;
+
+                t_sec += dt * timeScale;
+                v_mps += a_mps2 * (dt * timeScale);
+
+                // Movimento verticale
+                if (q_nano >= 0) {
+                    h_cm -= (v_mps * (dt * timeScale)) * 100.0;
+                } else {
+                    h_cm += (Math.abs(v_mps) * (dt * timeScale)) * 100.0;
+                }
+
+                // Collisione con le armature
+                if (q_nano >= 0 && h_cm <= 0) {
+                    h_cm = 0;
+                    running = false;
+                } else if (q_nano < 0 && h_cm >= 5.0) {
+                    h_cm = 5.0;
+                    running = false;
+                }
+
+                updateDataPanel();
+            }
+
+            drawScene();
+            if (running) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+
+        // Drag & drop verticale della carica
+        canvas.addEventListener('mousedown', (e) => {
+            if (running) return;
+            const rect = canvas.getBoundingClientRect();
+            let mx = e.clientX - rect.left;
+            let my = e.clientY - rect.top;
+            let chargeX = plateX + plateWidth / 2 - 20;
+            let chargeY = hToY(h_cm);
+
+            if (Math.hypot(mx - chargeX, my - chargeY) < 25) {
+                isDragging = true;
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging || running) return;
+            const rect = canvas.getBoundingClientRect();
+            let my = e.clientY - rect.top;
+            h_cm = yToH(my);
+            hRange.value = h_cm.toFixed(1);
+            hVal.innerText = h_cm.toFixed(1) + " cm";
+            updateDataPanel();
+            drawScene();
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        sigmaRange.addEventListener('input', updateValuesFromUI);
+        qRange.addEventListener('input', updateValuesFromUI);
+        massRange.addEventListener('input', updateValuesFromUI);
+        hRange.addEventListener('input', updateValuesFromUI);
+        speedRange.addEventListener('input', updateValuesFromUI);
+
+        btnStart.addEventListener('click', () => {
+            if (!running) {
+                if ((q_nano >= 0 && h_cm <= 0) || (q_nano < 0 && h_cm >= 5.0)) {
+                    h_cm = parseFloat(hRange.value);
+                    v_mps = 0.0;
+                    t_sec = 0.0;
+                }
+                running = true;
+                lastTime = null;
+                animationId = requestAnimationFrame(animate);
+            }
+        });
+
+        btnPause.addEventListener('click', () => {
+            running = false;
+            if (animationId) cancelAnimationFrame(animationId);
+        });
+
+        btnReset.addEventListener('click', () => {
+            running = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            t_sec = 0.0;
+            v_mps = 0.0;
+            h_cm = parseFloat(hRange.value);
+            updateValuesFromUI();
+            drawScene();
+        });
+
+        setTimeout(() => {
+            resizeCanvas();
+            updateValuesFromUI();
+        }, 80);
+    </script>
+</body>
+</html>
