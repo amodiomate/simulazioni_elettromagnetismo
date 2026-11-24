@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulazione: Circuiti in Serie e in Parallelo</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+            padding: 8px;
+            overflow: hidden;
+        }
+        header {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            padding: 8px 14px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        header h1 { font-size: 14px; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+        header p { font-size: 11px; color: #94a3b8; }
+        .badge {
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: #38bdf8;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            flex-grow: 1;
+            gap: 8px;
+            min-height: 0;
+            width: 100%;
+        }
+        .workspace {
+            flex-grow: 1;
+            background: radial-gradient(circle at center, #7cb3f5 0%, #5b9be8 100%);
+            border: 2px solid #334155;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 0;
+        }
+        canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+        canvas:active { cursor: grabbing; }
+        aside {
+            width: 285px;
+            min-width: 285px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 8px;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+        .section-title {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #38bdf8;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 3px;
+            margin-bottom: 6px;
+        }
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+        .btn-preset {
+            padding: 6px 8px;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .btn-preset:hover { border-color: #38bdf8; background-color: #1e293b; }
+        .btn-preset.active {
+            background-color: rgba(56, 189, 248, 0.2);
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+        .radio-row {
+            display: flex;
+            gap: 6px;
+        }
+        .radio-pill {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            padding: 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .radio-pill input { accent-color: #38bdf8; cursor: pointer; }
+        .instrument-box {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .instrument-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #cbd5e1;
+        }
+        .digital-screen {
+            background-color: #020617;
+            border: 1px solid #475569;
+            border-radius: 5px;
+            padding: 6px 8px;
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 19px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .volt-screen { color: #fbbf24; }
+        .amp-screen { color: #34d399; }
+        .btn-action {
+            width: 100%;
+            padding: 7px;
+            background-color: #334155;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-action:hover { background-color: #475569; }
+        .btn-danger {
+            background-color: rgba(220, 38, 38, 0.2);
+            border-color: rgba(220, 38, 38, 0.5);
+            color: #fca5a5;
+        }
+        .btn-danger:hover { background-color: rgba(220, 38, 38, 0.35); }
+        .hint {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(15, 23, 42, 0.88);
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            font-size: 10px;
+            padding: 5px 9px;
+            border-radius: 5px;
+            pointer-events: none;
+            max-width: calc(100% - 16px);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1><span>🔌</span> Laboratorio: Circuiti in Serie e in Parallelo</h1>
+            <p>Pila 9,0 V • Due lampadine identiche • Fili collegabili e strumenti di misura</p>
+        </div>
+        <div id="circuitStateBadge" class="badge">
+            Circuito aperto
+        </div>
+    </header>
+
+    <div class="main-container">
+        <main class="workspace">
+            <canvas id="simCanvas"></canvas>
+            <div class="hint">🖱️ <b>Clicca su due morsetti</b> per collegare un filo (oppure clicca su un filo per rimuoverlo) • Trascina <b>Voltmetro</b> e <b>Amperometro</b></div>
+        </main>
+
+        <aside>
+            <div>
+                <div class="section-title">Montaggio Rapido / Configurazioni</div>
+                <div class="btn-grid">
+                    <button class="btn-preset" onclick="loadPreset('single')">1 Lampadina</button>
+                    <button class="btn-preset" onclick="loadPreset('series')">2 in Serie</button>
+                    <button class="btn-preset" onclick="loadPreset('parallel')">2 in Parallelo</button>
+                    <button class="btn-preset btn-danger" onclick="clearWires()">Scollega tutto</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-title">Visualizzazione Cariche</div>
+                <div class="radio-row">
+                    <label class="radio-pill">
+                        <input type="radio" name="flowMode" value="electrons" checked onchange="setFlowMode('electrons')">
+                        <span>🔵 Elettroni (−)</span>
+                    </label>
+                    <label class="radio-pill">
+                        <input type="radio" name="flowMode" value="conventional" onchange="setFlowMode('conventional')">
+                        <span>🔴 Verso (i)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="instrument-box">
+                <div class="instrument-header">
+                    <span>📟 VOLTMETRO (ΔV)</span>
+                    <span style="font-size: 10px; color: #94a3b8;">In parallelo</span>
+                </div>
+                <div id="voltDisplay" class="digital-screen volt-screen">? V</div>
+                <div style="font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between;">
+                    <span>🔴 +: <b id="redStatus" style="color:#f8fafc;">libero</b></span>
+                    <span>⚫ −: <b id="blackStatus" style="color:#f8fafc;">libero</b></span>
+                </div>
+            </div>
+
+            <div class="instrument-box">
+                <div class="instrument-header">
+                    <span>🎯 AMPEROMETRO (i)</span>
+                    <span style="font-size: 10px; color: #94a3b8;">Sul ramo</span>
+                </div>
+                <div id="ampDisplay" class="digital-screen amp-screen">0.00 A</div>
+                <div style="font-size: 10px; color: #94a3b8;">
+                    Ramo: <b id="ampStatus" style="color:#f8fafc;">nessuno</b>
+                </div>
+            </div>
+
+            <button class="btn-action" onclick="resetInstruments()">↺ Riposiziona Voltmetro e Amperometro</button>
+        </aside>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Parametri fisici
+        const EMF = 9.0;      // Pila da 9.0 V
+        const R_LAMP = 10.0;  // Ciascuna lampadina ha resistenza 10 Ohm (i_singola = 0.90 A)
+
+        let flowMode = 'electrons';
+        let phase = 0;
+
+        // Morsetti (nodi) fisse dei 3 componenti sul banco di lavoro:
+        // Pila (B_NEG, B_POS)
+        // Lampadina 1 (L1_A, L1_B)
+        // Lampadina 2 (L2_A, L2_B)
+        let terminals = {};
+        let wires = []; // Array di { from: id1, to: id2, current: 0 }
+        let selectedTerminal = null;
+
+        // Stato elettrico risolto per ciascun morsetto e componente
+        let nodePotentials = {}; // id -> Volt (o null se flottante)
+        let lamp1State = { current: 0, dV: 0, brightness: 0 };
+        let lamp2State = { current: 0, dV: 0, brightness: 0 };
+        let batteryCurrent = 0;
+
+        // Strumenti di misura
+        let voltmeter = {
+            boxX: 0, boxY: 0, w: 115, h: 72,
+            red: { x: 0, y: 0, potential: null, label: 'libero' },
+            black: { x: 0, y: 0, potential: null, label: 'libero' }
+        };
+
+        let ammeter = {
+            x: 0, y: 0, r: 21,
+            reading: 0,
+            label: 'nessuno'
+        };
+
+        let draggingItem = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            layoutComponents();
+            if (voltmeter.boxX === 0) {
+                resetInstruments();
+                loadPreset('series');
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function layoutComponents() {
+            const cx = canvas.width * 0.42;
+            const cy = canvas.height * 0.54;
+            const scale = Math.min(canvas.width / 680, canvas.height / 520, 1.15);
+
+            // Pila orizzontale in basso
+            const bNeg = { id: 'B_NEG', x: cx - 65 * scale, y: cy + 155 * scale, label: 'Polo − Pila' };
+            const bPos = { id: 'B_POS', x: cx + 75 * scale, y: cy + 155 * scale, label: 'Polo + Pila' };
+
+            // Lampadina 1 in alto a sinistra
+            const l1A = { id: 'L1_A', x: cx - 115 * scale, y: cy - 35 * scale, label: 'L1 inf.' };
+            const l1B = { id: 'L1_B', x: cx - 77 * scale,  y: cy - 63 * scale, label: 'L1 lat.' };
+
+            // Lampadina 2 in alto a destra
+            const l2A = { id: 'L2_A', x: cx + 77 * scale,  y: cy - 63 * scale, label: 'L2 lat.' };
+            const l2B = { id: 'L2_B', x: cx + 115 * scale, y: cy - 35 * scale, label: 'L2 inf.' };
+
+            terminals = { B_NEG: bNeg, B_POS: bPos, L1_A: l1A, L1_B: l1B, L2_A: l2A, L2_B: l2B, scale };
+        }
+
+        function resetInstruments() {
+            const rightX = Math.max(15, canvas.width - 155);
+            voltmeter.boxX = rightX;
+            voltmeter.boxY = 25;
+            voltmeter.red.x = voltmeter.boxX + 90;
+            voltmeter.red.y = voltmeter.boxY + 108;
+            voltmeter.black.x = voltmeter.boxX + 25;
+            voltmeter.black.y = voltmeter.boxY + 108;
+
+            ammeter.x = voltmeter.boxX + 58;
+            ammeter.y = voltmeter.boxY + 205;
+
+            evaluateMeasurements();
+        }
+
+        function clearWires() {
+            wires = [];
+            selectedTerminal = null;
+            solveCircuit();
+        }
+
+        function loadPreset(type) {
+            wires = [];
+            selectedTerminal = null;
+            if (type === 'single') {
+                // Pila -> L1 -> Pila
+                wires.push({ from: 'B_NEG', to: 'L1_A', current: 0 });
+                wires.push({ from: 'L1_B', to: 'B_POS', current: 0 });
+            } else if (type === 'series') {
+                // Percorso unico: B_NEG -> L1_A --(L1)--> L1_B -> L2_A --(L2)--> L2_B -> B_POS
+                wires.push({ from: 'B_NEG', to: 'L1_A', current: 0 });
+                wires.push({ from: 'L1_B', to: 'L2_A', current: 0 });
+                wires.push({ from: 'L2_B', to: 'B_POS', current: 0 });
+            } else if (type === 'parallel') {
+                // Due rami indipendenti ai capi della pila:
+                // Ramo 1: B_NEG -> L1_A e L1_B -> B_POS
+                // Ramo 2: L1_A -> L2_A e L1_B -> L2_B (nodi comuni in parallelo)
+                wires.push({ from: 'B_NEG', to: 'L1_A', current: 0 });
+                wires.push({ from: 'B_POS', to: 'L1_B', current: 0 });
+                wires.push({ from: 'L1_A', to: 'L2_A', current: 0 });
+                wires.push({ from: 'L1_B', to: 'L2_B', current: 0 });
+            }
+            solveCircuit();
+        }
+
+        // Risolutore nodale esatto per qualunque grafo di fili tra B_NEG, B_POS, L1_A, L1_B, L2_A, L2_B
+        function solveCircuit() {
+            const ids = ['B_NEG', 'B_POS', 'L1_A', 'L1_B', 'L2_A', 'L2_B'];
+            // Trova le componenti connesse tramite i fili (super-nodi equipotenziali)
+            const parent = {};
+            ids.forEach(id => parent[id] = id);
+            function find(x) {
+                while (parent[x] !== x) {
+                    parent[x] = parent[parent[x]];
+                    x = parent[x];
+                }
+                return x;
+            }
+            function union(a, b) {
+                const ra = find(a), rb = find(b);
+                if (ra !== rb) parent[rb] = ra;
+            }
+            wires.forEach(w => union(w.from, w.to));
+
+            const rootNeg = find('B_NEG');
+            const rootPos = find('B_POS');
+
+            const badge = document.getElementById('circuitStateBadge');
+
+            // Cortocircuito diretto tra poli della pila
+            if (rootNeg === rootPos) {
+                badge.innerText = '⚠️ Cortocircuito!';
+                badge.style.color = '#f87171';
+                ids.forEach(id => nodePotentials[id] = 0);
+                lamp1State = { current: 0, dV: 0, brightness: 0 };
+                lamp2State = { current: 0, dV: 0, brightness: 0 };
+                batteryCurrent = 0;
+                wires.forEach(w => w.current = 0);
+                evaluateMeasurements();
+                return;
+            }
+
+            badge.style.color = '#38bdf8';
+
+            // Risolvi sistema lineare delle conduttanze sui super-nodi liberi
+            const roots = [...new Set(ids.map(find))];
+            const unknownRoots = roots.filter(r => r !== rootNeg && r !== rootPos);
+
+            const Vroot = {};
+            Vroot[rootNeg] = 0.0;
+            Vroot[rootPos] = EMF;
+            unknownRoots.forEach(r => Vroot[r] = null);
+
+            const r1A = find('L1_A'), r1B = find('L1_B');
+            const r2A = find('L2_A'), r2B = find('L2_B');
+            const G = 1.0 / R_LAMP;
+
+            if (unknownRoots.length === 1) {
+                const u = unknownRoots[0];
+                let gSum = 0;
+                let iSrc = 0;
+                // Contributo Lampada 1
+                if (r1A === u && r1B !== u && Vroot[r1B] !== null) { gSum += G; iSrc += G * Vroot[r1B]; }
+                if (r1B === u && r1A !== u && Vroot[r1A] !== null) { gSum += G; iSrc += G * Vroot[r1A]; }
+                // Contributo Lampada 2
+                if (r2A === u && r2B !== u && Vroot[r2B] !== null) { gSum += G; iSrc += G * Vroot[r2B]; }
+                if (r2B === u && r2A !== u && Vroot[r2A] !== null) { gSum += G; iSrc += G * Vroot[r2A]; }
+
+                if (gSum > 0) Vroot[u] = iSrc / gSum;
+            } else if (unknownRoots.length === 2) {
+                // Caso con 2 nodi interni sconosciuti: risolvi sistema 2x2
+                const u0 = unknownRoots[0], u1 = unknownRoots[1];
+                let a00 = 0, a01 = 0, a10 = 0, a11 = 0, b0 = 0, b1 = 0;
+                const branches = [[r1A, r1B], [r2A, r2B]];
+                branches.forEach(([ra, rb]) => {
+                    if (ra === rb) return;
+                    if (ra === u0) { a00 += G; if (rb === u1) a01 -= G; else if (Vroot[rb] !== null) b0 += G * Vroot[rb]; }
+                    if (rb === u0) { a00 += G; if (ra === u1) a01 -= G; else if (Vroot[ra] !== null) b0 += G * Vroot[ra]; }
+                    if (ra === u1) { a11 += G; if (rb === u0) a10 -= G; else if (Vroot[rb] !== null) b1 += G * Vroot[rb]; }
+                    if (rb === u1) { a11 += G; if (ra === u0) a10 -= G; else if (Vroot[ra] !== null) b1 += G * Vroot[ra]; }
+                });
+                const det = a00 * a11 - a01 * a10;
+                if (Math.abs(det) > 1e-9) {
+                    Vroot[u0] = (b0 * a11 - b1 * a01) / det;
+                    Vroot[u1] = (a00 * b1 - a10 * b0) / det;
+                }
+            }
+
+            ids.forEach(id => {
+                nodePotentials[id] = Vroot[find(id)];
+            });
+
+            // Calcola correnti e tensioni sulle due lampadine
+            const v1A = nodePotentials['L1_A'], v1B = nodePotentials['L1_B'];
+            if (v1A !== null && v1B !== null && r1A !== r1B) {
+                const i1 = (v1B - v1A) / R_LAMP; // positiva se va da B ad A (verso convenzionale)
+                const dV1 = Math.abs(v1B - v1A);
+                lamp1State = { current: i1, dV: dV1, brightness: Math.min(1, (dV1 / EMF) ** 1.6) };
+            } else {
+                lamp1State = { current: 0, dV: 0, brightness: 0 };
+            }
+
+            const v2A = nodePotentials['L2_A'], v2B = nodePotentials['L2_B'];
+            if (v2A !== null && v2B !== null && r2A !== r2B) {
+                const i2 = (v2B - v2A) / R_LAMP; // positiva se va da B ad A (verso convenzionale)
+                const dV2 = Math.abs(v2B - v2A);
+                lamp2State = { current: i2, dV: dV2, brightness: Math.min(1, (dV2 / EMF) ** 1.6) };
+            } else {
+                lamp2State = { current: 0, dV: 0, brightness: 0 };
+            }
+
+            // Calcola la corrente esatta in ciascun filo mediante albero ricoprente del super-nodo
+            wires.forEach(w => w.current = 0);
+            const inTree = new Array(wires.length).fill(false);
+            const vis = {};
+            function buildSpanningTree(u) {
+                vis[u] = true;
+                for (let idx = 0; idx < wires.length; idx++) {
+                    const w = wires[idx];
+                    let nxt = null;
+                    if (w.from === u && !vis[w.to]) nxt = w.to;
+                    else if (w.to === u && !vis[w.from]) nxt = w.from;
+                    if (nxt) {
+                        inTree[idx] = true;
+                        buildSpanningTree(nxt);
+                    }
+                }
+            }
+            ids.forEach(id => { if (!vis[id]) buildSpanningTree(id); });
+
+            // Bilancio di corrente uscente da ogni morsetto verso i componenti:
+            // Per la lampada 1: corrente convenzionale esce da L1_A ed entra in L1_B pari a lamp1State.current
+            const netOut = {
+                L1_A: lamp1State.current,
+                L1_B: -lamp1State.current,
+                L2_A: lamp2State.current,
+                L2_B: -lamp2State.current,
+                B_POS: 0,
+                B_NEG: 0
+            };
+            // La corrente totale della pila bilancia tutto ciò che entra nel super-nodo B_POS
+            let totalPosOut = 0;
+            ids.forEach(id => {
+                if (find(id) === rootPos && id !== 'B_POS') totalPosOut += netOut[id];
+            });
+            netOut['B_POS'] = -totalPosOut;
+            netOut['B_NEG'] = totalPosOut;
+            batteryCurrent = Math.abs(totalPosOut);
+
+            // Risolvi correnti sui rami dell'albero dalle foglie alla radice
+            const treeVis = {};
+            function computeTreeCurrents(u) {
+                treeVis[u] = true;
+                let sumOut = netOut[u];
+                for (let idx = 0; idx < wires.length; idx++) {
+                    if (!inTree[idx]) continue;
+                    const w = wires[idx];
+                    if (w.from === u && !treeVis[w.to]) {
+                        const sub = computeTreeCurrents(w.to);
+                        // sub è la corrente netta richiesta dal sottoalbero w.to, quindi fluisce da u -> w.to
+                        w.current = sub;
+                        sumOut += sub;
+                    } else if (w.to === u && !treeVis[w.from]) {
+                        const sub = computeTreeCurrents(w.from);
+                        // fluisce da u -> w.from, quindi opposta a from -> to
+                        w.current = -sub;
+                        sumOut += sub;
+                    }
+                }
+                return sumOut;
+            }
+            ids.forEach(id => { if (!treeVis[id]) computeTreeCurrents(id); });
+
+            // Aggiorna badge descrittivo
+            const l1On = Math.abs(lamp1State.current) > 0.01;
+            const l2On = Math.abs(lamp2State.current) > 0.01;
+            if (!l1On && !l2On) {
+                badge.innerText = 'Circuito aperto (nessun flusso)';
+            } else if (l1On && l2On) {
+                if (Math.abs(lamp1State.dV - 4.5) < 0.2) badge.innerText = '2 Lampadine in SERIE';
+                else if (Math.abs(lamp1State.dV - 9.0) < 0.2) badge.innerText = '2 Lampadine in PARALLELO';
+                else badge.innerText = '2 Lampadine attive';
+            } else {
+                badge.innerText = '1 Lampadina accesa';
+            }
+
+            evaluateMeasurements();
+        }
+
+        function probePotentialAt(px, py) {
+            const snap = 18;
+            // Controlla prima i morsetti
+            for (const key of ['B_NEG', 'B_POS', 'L1_A', 'L1_B', 'L2_A', 'L2_B']) {
+                const t = terminals[key];
+                if (Math.hypot(px - t.x, py - t.y) <= snap) {
+                    return { v: nodePotentials[key], label: t.label };
+                }
+            }
+            // Controlla i fili collegati
+            for (const w of wires) {
+                const p1 = terminals[w.from];
+                const p2 = terminals[w.to];
+                if (distToSegment(px, py, p1.x, p1.y, p2.x, p2.y) <= snap) {
+                    return { v: nodePotentials[w.from], label: `Filo (${p1.label})` };
+                }
+            }
+            return { v: null, label: 'libero' };
+        }
+
+        function probeCurrentAt(ax, ay) {
+            const snap = 22;
+            // Controlla i fili
+            for (let idx = 0; idx < wires.length; idx++) {
+                const w = wires[idx];
+                const p1 = terminals[w.from];
+                const p2 = terminals[w.to];
+                if (distToSegment(ax, ay, p1.x, p1.y, p2.x, p2.y) <= snap) {
+                    return { i: Math.abs(w.current), label: `Filo ${p1.label}–${p2.label}` };
+                }
+            }
+            // Controlla lampadina 1
+            if (Math.hypot(ax - (terminals.L1_A.x + 18), ay - (terminals.L1_A.y - 35)) <= 32) {
+                return { i: Math.abs(lamp1State.current), label: 'Lampadina 1' };
+            }
+            // Controlla lampadina 2
+            if (Math.hypot(ax - (terminals.L2_B.x - 18), ay - (terminals.L2_B.y - 35)) <= 32) {
+                return { i: Math.abs(lamp2State.current), label: 'Lampadina 2' };
+            }
+            // Controlla pila
+            if (distToSegment(ax, ay, terminals.B_NEG.x, terminals.B_NEG.y, terminals.B_POS.x, terminals.B_POS.y) <= 24) {
+                return { i: batteryCurrent, label: 'Pila (totale)' };
+            }
+            return { i: 0, label: 'nessuno' };
+        }
+
+        function distToSegment(px, py, x1, y1, x2, y2) {
+            const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+            if (l2 === 0) return Math.hypot(px - x1, py - y1);
+            let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+        }
+
+        function evaluateMeasurements() {
+            const resRed = probePotentialAt(voltmeter.red.x, voltmeter.red.y);
+            const resBlack = probePotentialAt(voltmeter.black.x, voltmeter.black.y);
+
+            voltmeter.red.potential = resRed.v;
+            voltmeter.red.label = resRed.label;
+            voltmeter.black.potential = resBlack.v;
+            voltmeter.black.label = resBlack.label;
+
+            document.getElementById('redStatus').innerText = resRed.label;
+            document.getElementById('blackStatus').innerText = resBlack.label;
+
+            const voltDisp = document.getElementById('voltDisplay');
+            if (resRed.v !== null && resBlack.v !== null) {
+                const dV = resRed.v - resBlack.v;
+                const signStr = dV > 0.001 ? '+' : '';
+                voltDisp.innerText = `${signStr}${dV.toFixed(2)} V`;
+            } else {
+                voltDisp.innerText = '? V';
+            }
+
+            const resAmp = probeCurrentAt(ammeter.x, ammeter.y);
+            ammeter.reading = resAmp.i;
+            ammeter.label = resAmp.label;
+
+            document.getElementById('ampDisplay').innerText = `${ammeter.reading.toFixed(2)} A`;
+            document.getElementById('ampStatus').innerText = resAmp.label;
+        }
+
+        function drawScene() {
+            const { B_NEG, B_POS, L1_A, L1_B, L2_A, L2_B, scale } = terminals;
+
+            // 1. Disegna i fili collegati dall'utente
+            wires.forEach(w => {
+                const p1 = terminals[w.from];
+                const p2 = terminals[w.to];
+                drawCopperWire(p1.x, p1.y, p2.x, p2.y, 12 * scale);
+            });
+
+            // 2. Disegna Lampadina 1 (morsetto inferiore L1_A, morsetto laterale destro L1_B)
+            drawBulb(L1_A.x, L1_A.y, lamp1State.brightness, scale, '1', false);
+
+            // 3. Disegna Lampadina 2 (morsetto inferiore L2_B, morsetto laterale sinistro L2_A)
+            drawBulb(L2_B.x, L2_B.y, lamp2State.brightness, scale, '2', true);
+
+            // 4. Disegna la Pila da 9.0 V in basso
+            drawBattery(B_NEG.x, B_NEG.y, B_POS.x, B_POS.y, scale);
+
+            // 5. Disegna i portatori di carica lungo tutti i fili attivi, lampadine e pila
+            drawAllCarriers(scale);
+
+            // 6. Disegna i 6 morsetti interattivi
+            ['B_NEG', 'B_POS', 'L1_A', 'L1_B', 'L2_A', 'L2_B'].forEach(key => {
+                const t = terminals[key];
+                const isSelected = (selectedTerminal === key);
+                ctx.save();
+                ctx.fillStyle = isSelected ? 'rgba(250, 204, 21, 0.9)' : 'rgba(180, 140, 110, 0.85)';
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, 9 * scale, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = isSelected ? '#fef08a' : '#0f172a';
+                ctx.lineWidth = isSelected ? 2.5 : 1.5;
+                ctx.setLineDash([4, 3]);
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, 13 * scale, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            });
+        }
+
+        function drawBulb(botX, botY, brightness, scale, numLabel, mirrorSide) {
+            const center = { x: botX, y: botY - 68 * scale };
+
+            // Alone e raggi luminosi proporzionali alla potenza dissipata (brightness da 0 a 1)
+            if (brightness > 0.02) {
+                ctx.save();
+                const glowRadius = (45 + 75 * brightness) * scale;
+                const glow = ctx.createRadialGradient(center.x, center.y, 10 * scale, center.x, center.y, glowRadius);
+                glow.addColorStop(0, `rgba(254, 240, 138, ${0.75 * brightness})`);
+                glow.addColorStop(1, 'rgba(254, 240, 138, 0)');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, glowRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = `rgba(254, 240, 138, ${0.35 + 0.65 * brightness})`;
+                ctx.lineWidth = (1.5 + 1.5 * brightness) * scale;
+                const numRays = 17;
+                for (let i = 0; i < numRays; i++) {
+                    const angle = Math.PI * 0.82 + (i / (numRays - 1)) * (Math.PI * 1.36);
+                    const rInner = 36 * scale;
+                    const rOuter = ((i % 2 === 0 ? 55 : 45) + 55 * brightness) * scale;
+                    ctx.beginPath();
+                    ctx.moveTo(center.x + Math.cos(angle) * rInner, center.y + Math.sin(angle) * rInner);
+                    ctx.lineTo(center.x + Math.cos(angle) * rOuter, center.y + Math.sin(angle) * rOuter);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            ctx.save();
+            // Ampolla di vetro
+            const gradGlass = ctx.createRadialGradient(center.x - 8 * scale, center.y - 8 * scale, 4 * scale, center.x, center.y, 34 * scale);
+            gradGlass.addColorStop(0, brightness > 0.1 ? `rgba(255, 255, 210, ${0.65 + 0.3 * brightness})` : 'rgba(241, 245, 249, 0.65)');
+            gradGlass.addColorStop(1, 'rgba(147, 197, 253, 0.78)');
+            ctx.fillStyle = gradGlass;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 32 * scale, 0.22 * Math.PI, 0.78 * Math.PI, true);
+            ctx.lineTo(botX - 17 * scale, botY - 38 * scale);
+            ctx.lineTo(botX + 17 * scale, botY - 38 * scale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1.6;
+            ctx.stroke();
+
+            // Filamento interno
+            ctx.strokeStyle = brightness > 0.5 ? '#fef08a' : (brightness > 0.1 ? '#f97316' : '#64748b');
+            ctx.lineWidth = 2.8 * scale;
+            ctx.beginPath();
+            ctx.moveTo(botX - 6 * scale, botY - 38 * scale);
+            ctx.lineTo(botX - 6 * scale, center.y - 6 * scale);
+            ctx.lineTo(botX + 6 * scale, center.y - 6 * scale);
+            ctx.lineTo(botX + 6 * scale, botY - 38 * scale);
+            ctx.stroke();
+
+            // Base metallica filettata
+            const gradMetal = ctx.createLinearGradient(botX - 18 * scale, 0, botX + 18 * scale, 0);
+            gradMetal.addColorStop(0, '#64748b');
+            gradMetal.addColorStop(0.4, '#f1f5f9');
+            gradMetal.addColorStop(0.8, '#94a3b8');
+            gradMetal.addColorStop(1, '#475569');
+            ctx.fillStyle = gradMetal;
+            ctx.fillRect(botX - 18 * scale, botY - 38 * scale, 36 * scale, 25 * scale);
+            ctx.strokeStyle = '#1e293b';
+            ctx.strokeRect(botX - 18 * scale, botY - 38 * scale, 36 * scale, 25 * scale);
+
+            // Etichetta L1 / L2
+            ctx.fillStyle = '#0f172a';
+            ctx.font = `bold ${Math.round(11 * scale)}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(`L${numLabel}`, botX, botY - 21 * scale);
+            ctx.textAlign = 'left';
+
+            // Isolante e contatto inferiore
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.moveTo(botX - 18 * scale, botY - 13 * scale);
+            ctx.lineTo(botX + 18 * scale, botY - 13 * scale);
+            ctx.lineTo(botX + 9 * scale, botY - 3 * scale);
+            ctx.lineTo(botX - 9 * scale, botY - 3 * scale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawBattery(negX, negY, posX, posY, scale) {
+            ctx.save();
+            const batW = posX - negX - 10 * scale;
+            const batH = 32 * scale;
+            const batX = negX + 3 * scale;
+            const batY = negY - batH / 2;
+
+            ctx.fillStyle = '#18181b';
+            ctx.fillRect(batX, batY, batW * 0.65, batH);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(batX + batW * 0.65, batY, batW * 0.35, batH);
+            ctx.strokeStyle = '#09090b';
+            ctx.lineWidth = 1.6;
+            ctx.strokeRect(batX, batY, batW, batH);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(batX + batW, batY + batH * 0.28, 6 * scale, batH * 0.44);
+            ctx.strokeRect(batX + batW, batY + batH * 0.28, 6 * scale, batH * 0.44);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${Math.round(11 * scale)}px sans-serif`;
+            ctx.fillText('−', batX + 7 * scale, batY + batH - 6 * scale);
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillText('9,0 V', batX + 26 * scale, batY + batH - 11 * scale);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillText('+', batX + batW - 13 * scale, batY + batH - 6 * scale);
+            ctx.restore();
+        }
+
+        function drawCopperWire(x1, y1, x2, y2, thickness) {
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const len = Math.hypot(x2 - x1, y2 - y1);
+            ctx.save();
+            ctx.translate(x1, y1);
+            ctx.rotate(angle);
+            const grad = ctx.createLinearGradient(0, -thickness / 2, 0, thickness / 2);
+            grad.addColorStop(0, '#7c2d12');
+            grad.addColorStop(0.35, '#ea580c');
+            grad.addColorStop(0.55, '#fdba74');
+            grad.addColorStop(1, '#7c2d12');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, -thickness / 2, len, thickness);
+            ctx.strokeStyle = '#431407';
+            ctx.lineWidth = 1.1;
+            ctx.strokeRect(0, -thickness / 2, len, thickness);
+            ctx.restore();
+        }
+
+        function drawCarriersOnSegment(x1, y1, x2, y2, convCurrent, scale) {
+            const len = Math.hypot(x2 - x1, y2 - y1);
+            if (len < 10) return;
+            const spacing = 32 * scale;
+            const count = Math.max(1, Math.floor(len / spacing));
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+
+            // Velocità proporzionale alla corrente convCurrent
+            // Se convCurrent > 0 (verso convenzionale da p1 a p2), gli elettroni vanno da p2 a p1
+            const speedFactor = convCurrent / 0.90; // 1.0 per 0.90 A, 0.5 per 0.45 A
+            const dir = flowMode === 'electrons' ? -speedFactor : speedFactor;
+            const shift = ((phase * dir) % spacing + spacing) % spacing;
+
+            for (let d = shift; d < len; d += spacing) {
+                const t = d / len;
+                const px = x1 + t * (x2 - x1);
+                const py = y1 + t * (y2 - y1);
+
+                if (flowMode === 'electrons') {
+                    const r = 7.5 * scale;
+                    ctx.save();
+                    ctx.fillStyle = '#0284c7';
+                    ctx.beginPath();
+                    ctx.arc(px, py, r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.4;
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.8;
+                    ctx.beginPath();
+                    ctx.moveTo(px - 3.5 * scale, py);
+                    ctx.lineTo(px + 3.5 * scale, py);
+                    ctx.stroke();
+                    ctx.restore();
+                } else if (Math.abs(convCurrent) > 0.01) {
+                    const arrowAngle = convCurrent >= 0 ? angle : angle + Math.PI;
+                    ctx.save();
+                    ctx.translate(px, py);
+                    ctx.rotate(arrowAngle);
+                    ctx.fillStyle = '#dc2626';
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.1;
+                    ctx.beginPath();
+                    ctx.moveTo(8 * scale, 0);
+                    ctx.lineTo(-3.5 * scale, -5 * scale);
+                    ctx.lineTo(-1 * scale, 0);
+                    ctx.lineTo(-3.5 * scale, 5 * scale);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function drawAllCarriers(scale) {
+            // 1. Sui fili collegati
+            wires.forEach(w => {
+                const p1 = terminals[w.from];
+                const p2 = terminals[w.to];
+                drawCarriersOnSegment(p1.x, p1.y, p2.x, p2.y, w.current, scale);
+            });
+            // 2. Attraverso Lampadina 1 (da L1_B a L1_A nel verso convenzionale)
+            drawCarriersOnSegment(terminals.L1_B.x, terminals.L1_B.y, terminals.L1_A.x, terminals.L1_A.y, lamp1State.current, scale);
+            // 3. Attraverso Lampadina 2 (da L2_B a L2_A nel verso convenzionale)
+            drawCarriersOnSegment(terminals.L2_B.x, terminals.L2_B.y, terminals.L2_A.x, terminals.L2_A.y, lamp2State.current, scale);
+            // 4. Dentro la Pila (da B_NEG a B_POS nel verso convenzionale)
+            const batDir = (nodePotentials['B_POS'] - nodePotentials['B_NEG'] >= 0) ? batteryCurrent : -batteryCurrent;
+            drawCarriersOnSegment(terminals.B_NEG.x, terminals.B_NEG.y, terminals.B_POS.x, terminals.B_POS.y, batDir, scale);
+        }
+
+        function drawInstruments() {
+            const { boxX, boxY, w, h, red, black } = voltmeter;
+            ctx.save();
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(boxX, boxY, w, h, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillText('VOLTMETRO', boxX + 10, boxY + 15);
+
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(boxX + 10, boxY + 21, w - 20, 28);
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 14px monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(document.getElementById('voltDisplay').innerText, boxX + w - 15, boxY + 40);
+            ctx.textAlign = 'left';
+
+            ctx.fillStyle = '#09090b';
+            ctx.beginPath(); ctx.arc(boxX + 28, boxY + h - 8, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath(); ctx.arc(boxX + w - 28, boxY + h - 8, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+
+            drawProbeLead(boxX + 28, boxY + h - 8, black.x, black.y, '#18181b');
+            drawProbeLead(boxX + w - 28, boxY + h - 8, red.x, red.y, '#dc2626');
+
+            drawProbeTip(black.x, black.y, '#18181b', '−');
+            drawProbeTip(red.x, red.y, '#dc2626', '+');
+
+            ctx.save();
+            const activeAmp = ammeter.label !== 'nessuno';
+            ctx.fillStyle = activeAmp ? 'rgba(16, 185, 129, 0.25)' : 'rgba(30, 41, 59, 0.85)';
+            ctx.strokeStyle = activeAmp ? '#10b981' : '#f8fafc';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(ammeter.x, ammeter.y, ammeter.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(ammeter.x - 8, ammeter.y);
+            ctx.lineTo(ammeter.x + 8, ammeter.y);
+            ctx.moveTo(ammeter.x, ammeter.y - 8);
+            ctx.lineTo(ammeter.x, ammeter.y + 8);
+            ctx.stroke();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.roundRect(ammeter.x - 34, ammeter.y + ammeter.r + 4, 68, 19, 4);
+            ctx.fill();
+            ctx.fillStyle = '#34d399';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${ammeter.reading.toFixed(2)} A`, ammeter.x, ammeter.y + ammeter.r + 17);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
+
+        function drawProbeLead(x1, y1, x2, y2, color) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.8;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            const midY = Math.max(y1, y2) + 32;
+            ctx.bezierCurveTo(x1, midY, x2, midY, x2, y2 + 22);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawProbeTip(x, y, color, sign) {
+            ctx.save();
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + 11);
+            ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(x - 7, y + 11, 14, 22, 3);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(sign, x, y + 26);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
+
+        let lastTime = 0;
+        function animate(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+            lastTime = timestamp;
+
+            phase += 52 * dt;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawScene();
+            drawInstruments();
+
+            requestAnimationFrame(animate);
+        }
+
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function onPointerDown(e) {
+            const pos = getPointerPos(e);
+
+            // 1. Controllo trascinamento puntali / amperometro / voltmetro
+            if (Math.hypot(pos.x - voltmeter.red.x, pos.y - (voltmeter.red.y + 16)) < 22) {
+                draggingItem = 'red';
+                dragOffset = { x: pos.x - voltmeter.red.x, y: pos.y - voltmeter.red.y };
+                return;
+            }
+            if (Math.hypot(pos.x - voltmeter.black.x, pos.y - (voltmeter.black.y + 16)) < 22) {
+                draggingItem = 'black';
+                dragOffset = { x: pos.x - voltmeter.black.x, y: pos.y - voltmeter.black.y };
+                return;
+            }
+            if (Math.hypot(pos.x - ammeter.x, pos.y - ammeter.y) < ammeter.r + 8) {
+                draggingItem = 'ammeter';
+                dragOffset = { x: pos.x - ammeter.x, y: pos.y - ammeter.y };
+                return;
+            }
+            if (pos.x >= voltmeter.boxX && pos.x <= voltmeter.boxX + voltmeter.w &&
+                pos.y >= voltmeter.boxY && pos.y <= voltmeter.boxY + voltmeter.h) {
+                draggingItem = 'voltBox';
+                dragOffset = { x: pos.x - voltmeter.boxX, y: pos.y - voltmeter.boxY };
+                return;
+            }
+
+            // 2. Controllo clic su un morsetto per collegare/scollegare un filo
+            for (const key of ['B_NEG', 'B_POS', 'L1_A', 'L1_B', 'L2_A', 'L2_B']) {
+                const t = terminals[key];
+                if (Math.hypot(pos.x - t.x, pos.y - t.y) <= 18) {
+                    if (selectedTerminal === null) {
+                        selectedTerminal = key;
+                    } else if (selectedTerminal === key) {
+                        selectedTerminal = null;
+                    } else {
+                        // Aggiungi o rimuovi filo tra selectedTerminal e key
+                        const existingIdx = wires.findIndex(w =>
+                            (w.from === selectedTerminal && w.to === key) ||
+                            (w.from === key && w.to === selectedTerminal)
+                        );
+                        if (existingIdx >= 0) {
+                            wires.splice(existingIdx, 1);
+                        } else {
+                            wires.push({ from: selectedTerminal, to: key, current: 0 });
+                        }
+                        selectedTerminal = null;
+                        solveCircuit();
+                    }
+                    return;
+                }
+            }
+
+            // 3. Controllo clic su un filo esistente per rimuoverlo
+            for (let i = wires.length - 1; i >= 0; i--) {
+                const w = wires[i];
+                const p1 = terminals[w.from];
+                const p2 = terminals[w.to];
+                if (distToSegment(pos.x, pos.y, p1.x, p1.y, p2.x, p2.y) <= 10) {
+                    wires.splice(i, 1);
+                    selectedTerminal = null;
+                    solveCircuit();
+                    return;
+                }
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!draggingItem) return;
+            const pos = getPointerPos(e);
+            const nx = Math.max(15, Math.min(canvas.width - 15, pos.x - dragOffset.x));
+            const ny = Math.max(15, Math.min(canvas.height - 15, pos.y - dragOffset.y));
+
+            if (draggingItem === 'red') {
+                voltmeter.red.x = nx;
+                voltmeter.red.y = ny;
+            } else if (draggingItem === 'black') {
+                voltmeter.black.x = nx;
+                voltmeter.black.y = ny;
+            } else if (draggingItem === 'ammeter') {
+                ammeter.x = nx;
+                ammeter.y = ny;
+            } else if (draggingItem === 'voltBox') {
+                voltmeter.boxX = Math.max(10, Math.min(canvas.width - voltmeter.w - 10, nx));
+                voltmeter.boxY = Math.max(10, Math.min(canvas.height - voltmeter.h - 10, ny));
+            }
+            evaluateMeasurements();
+        }
+
+        function onPointerUp() {
+            draggingItem = null;
+        }
+
+        canvas.addEventListener('mousedown', onPointerDown);
+        canvas.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
+
+        canvas.addEventListener('touchstart', onPointerDown, { passive: true });
+        canvas.addEventListener('touchmove', onPointerMove, { passive: true });
+        window.addEventListener('touchend', onPointerUp);
+
+        setTimeout(() => {
+            resizeCanvas();
+            requestAnimationFrame(animate);
+        }, 50);
+    </script>
+</body>
+</html>
