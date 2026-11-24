@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulazione: Misure di Tensione e Corrente nel Circuito Elementare</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+            padding: 8px;
+            overflow: hidden;
+        }
+        header {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            padding: 8px 14px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        header h1 { font-size: 14px; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+        header p { font-size: 11px; color: #94a3b8; }
+        .badge {
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            color: #38bdf8;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .main-container {
+            display: flex;
+            flex-direction: row;
+            flex-grow: 1;
+            gap: 8px;
+            min-height: 0;
+            width: 100%;
+        }
+        .workspace {
+            flex-grow: 1;
+            background: radial-gradient(circle at center, #7cb3f5 0%, #5b9be8 100%);
+            border: 2px solid #334155;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 0;
+        }
+        canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+        canvas:active { cursor: grabbing; }
+        aside {
+            width: 280px;
+            min-width: 280px;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 10px;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+        .section-title {
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #38bdf8;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+        }
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        .radio-option:hover { border-color: #38bdf8; }
+        .radio-option input { accent-color: #38bdf8; cursor: pointer; }
+        .instrument-box {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .instrument-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #cbd5e1;
+        }
+        .digital-screen {
+            background-color: #020617;
+            border: 1px solid #475569;
+            border-radius: 5px;
+            padding: 8px;
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .volt-screen { color: #fbbf24; }
+        .amp-screen { color: #34d399; }
+        .btn-reset {
+            width: 100%;
+            padding: 8px;
+            background-color: #334155;
+            hover: background-color: #475569;
+            color: #f8fafc;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-reset:hover { background-color: #475569; }
+        .hint {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 5px;
+            pointer-events: none;
+        }
+        .note-box {
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1><span>⚡</span> Laboratorio Virtuale: Voltmetro e Amperometro</h1>
+            <p>Circuito elementare bloccato (Pila 9,0 V + Lampadina 10 Ω)</p>
+        </div>
+        <div class="badge">
+            Strumenti di misura: ΔV e I
+        </div>
+    </header>
+
+    <div class="main-container">
+        <main class="workspace">
+            <canvas id="simCanvas"></canvas>
+            <div class="hint">🖱️ Trascina i puntali del <b>Voltmetro</b> (rosso e nero) e il sensore dell'<b>Amperometro</b> sul circuito</div>
+        </main>
+
+        <aside>
+            <div>
+                <div class="section-title">Visualizzazione Flusso</div>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="flowMode" value="electrons" checked onchange="setFlowMode('electrons')">
+                        <span>🔵 Moto degli elettroni (−)</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="flowMode" value="conventional" onchange="setFlowMode('conventional')">
+                        <span>🔴 Verso convenzionale (+)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="instrument-box">
+                <div class="instrument-header">
+                    <span>📟 VOLTMETRO (ΔV)</span>
+                    <span style="font-size: 10px; color: #94a3b8;">In parallelo</span>
+                </div>
+                <div id="voltDisplay" class="digital-screen volt-screen">? V</div>
+                <div style="font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between;">
+                    <span>🔴 Puntale +: <b id="redStatus" style="color:#f8fafc;">libero</b></span>
+                    <span>⚫ Puntale −: <b id="blackStatus" style="color:#f8fafc;">libero</b></span>
+                </div>
+            </div>
+
+            <div class="instrument-box">
+                <div class="instrument-header">
+                    <span>🎯 AMPEROMETRO (I)</span>
+                    <span style="font-size: 10px; color: #94a3b8;">In serie / ramo</span>
+                </div>
+                <div id="ampDisplay" class="digital-screen amp-screen">0.00 A</div>
+                <div style="font-size: 10px; color: #94a3b8;">
+                    Posizione: <b id="ampStatus" style="color:#f8fafc;">fuori dal filo</b>
+                </div>
+            </div>
+
+            <div class="note-box">
+                💡 <b>Osserva:</b> Il circuito non è modificabile. Appoggia i puntali del voltmetro ai capi della pila o della lampadina, e sposta il mirino dell'amperometro lungo i due fili di rame.
+            </div>
+
+            <button class="btn-reset" onclick="resetInstruments()">↺ Riposiziona gli strumenti</button>
+        </aside>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Parametri elettrici fissi del circuito
+        const EMF = 9.0;       // Volt della pila
+        const R_BULB = 10.0;   // Ohm della lampadina
+        const CURRENT = EMF / R_BULB; // 0.90 A
+
+        let flowMode = 'electrons'; // 'electrons' | 'conventional'
+        let phase = 0;
+
+        // Nodi topologici del circuito (calcolati al resize)
+        // Circuito a triangolo come nell'immagine:
+        // B_NEG (polo negativo pila, in basso a sinistra)
+        // B_POS (polo positivo pila, in basso a destra)
+        // BULB_BOTTOM (contatto inferiore lampadina, in alto a sinistra)
+        // BULB_SIDE (contatto laterale lampadina, in alto a destra)
+        let nodes = {};
+        let pathSegments = [];
+        let totalPathLength = 0;
+
+        // Stato strumenti trascinabili
+        let voltmeter = {
+            boxX: 0, boxY: 0, w: 120, h: 75,
+            red: { x: 0, y: 0, potential: null, label: 'libero' },
+            black: { x: 0, y: 0, potential: null, label: 'libero' }
+        };
+
+        let ammeter = {
+            x: 0, y: 0, r: 22,
+            reading: 0,
+            onWire: false
+        };
+
+        let draggingItem = null; // 'red' | 'black' | 'ammeter' | 'voltBox'
+        let dragOffset = { x: 0, y: 0 };
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            buildCircuitGeometry();
+            if (voltmeter.boxX === 0) {
+                resetInstruments();
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function buildCircuitGeometry() {
+            const cx = canvas.width * 0.42;
+            const cy = canvas.height * 0.52;
+            const scale = Math.min(canvas.width / 650, canvas.height / 520, 1.15);
+
+            // Disposizione geometrica identica all'immagine PhET fornita
+            const bNeg = { x: cx - 55 * scale, y: cy + 165 * scale, v: 0.0, name: 'Polo − Pila' };
+            const bPos = { x: cx + 85 * scale, y: cy + 165 * scale, v: EMF, name: 'Polo + Pila' };
+            const bulbBot = { x: cx - 65 * scale, y: cy - 65 * scale, v: 0.0, name: 'Base Lampadina' };
+            const bulbSide = { x: cx - 22 * scale, y: cy - 95 * scale, v: EMF, name: 'Virola Lampadina' };
+
+            nodes = { bNeg, bPos, bulbBot, bulbSide, scale };
+
+            // Percorso chiuso nel verso degli elettroni (da bNeg -> bulbBot -> filamento -> bulbSide -> bPos -> interno pila -> bNeg)
+            const filamentMid1 = { x: cx - 65 * scale, y: cy - 135 * scale };
+            const filamentTop1 = { x: cx - 72 * scale, y: cy - 155 * scale };
+            const filamentTop2 = { x: cx - 45 * scale, y: cy - 155 * scale };
+            const filamentMid2 = { x: cx - 45 * scale, y: cy - 125 * scale };
+
+            const pts = [
+                bNeg,
+                bulbBot,
+                filamentMid1,
+                filamentTop1,
+                filamentTop2,
+                filamentMid2,
+                bulbSide,
+                bPos,
+                bNeg
+            ];
+
+            pathSegments = [];
+            totalPathLength = 0;
+            for (let i = 0; i < pts.length - 1; i++) {
+                const p1 = pts[i];
+                const p2 = pts[i + 1];
+                const len = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+                pathSegments.push({
+                    x1: p1.x, y1: p1.y,
+                    x2: p2.x, y2: p2.y,
+                    len: len,
+                    startDist: totalPathLength,
+                    isWire: (i === 0 || i === 6) // Filo sinistro e filo destro
+                });
+                totalPathLength += len;
+            }
+        }
+
+        function resetInstruments() {
+            const rightAreaX = canvas.width - 175;
+            voltmeter.boxX = Math.max(20, rightAreaX);
+            voltmeter.boxY = 45;
+            voltmeter.red.x = voltmeter.boxX + 95;
+            voltmeter.red.y = voltmeter.boxY + 115;
+            voltmeter.black.x = voltmeter.boxX + 25;
+            voltmeter.black.y = voltmeter.boxY + 115;
+
+            ammeter.x = voltmeter.boxX + 60;
+            ammeter.y = voltmeter.boxY + 215;
+
+            evaluateMeasurements();
+        }
+
+        // Calcola il potenziale elettrico in un punto (x, y) se tocca un conduttore del circuito
+        function probePotentialAt(px, py) {
+            const snapDist = 18;
+            // Ramo a potenziale 0 V (polo negativo pila <-> filo sinistro <-> contatto base lampadina)
+            const dLeftWire = distToSegment(px, py, nodes.bNeg.x, nodes.bNeg.y, nodes.bulbBot.x, nodes.bulbBot.y);
+            if (dLeftWire <= snapDist) {
+                if (Math.hypot(px - nodes.bNeg.x, py - nodes.bNeg.y) < 22) return { v: 0.0, label: 'Polo − (0 V)' };
+                if (Math.hypot(px - nodes.bulbBot.x, py - nodes.bulbBot.y) < 22) return { v: 0.0, label: 'Base lampadina' };
+                return { v: 0.0, label: 'Filo sinistro' };
+            }
+
+            // Ramo a potenziale +9.0 V (polo positivo pila <-> filo destro <-> contatto laterale lampadina)
+            const dRightWire = distToSegment(px, py, nodes.bPos.x, nodes.bPos.y, nodes.bulbSide.x, nodes.bulbSide.y);
+            if (dRightWire <= snapDist) {
+                if (Math.hypot(px - nodes.bPos.x, py - nodes.bPos.y) < 22) return { v: EMF, label: 'Polo + (+9 V)' };
+                if (Math.hypot(px - nodes.bulbSide.x, py - nodes.bulbSide.y) < 22) return { v: EMF, label: 'Virola lampadina' };
+                return { v: EMF, label: 'Filo destro' };
+            }
+
+            return { v: null, label: 'libero' };
+        }
+
+        // Controlla se l'amperometro è sopra un filo o componente attraversato da corrente
+        function checkAmmeterPosition(ax, ay) {
+            for (const seg of pathSegments) {
+                const d = distToSegment(ax, ay, seg.x1, seg.y1, seg.x2, seg.y2);
+                if (d <= 22) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function distToSegment(px, py, x1, y1, x2, y2) {
+            const l2 = (x2 - x1) ** 2 + (y2 - y1) ** 2;
+            if (l2 === 0) return Math.hypot(px - x1, py - y1);
+            let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+        }
+
+        function evaluateMeasurements() {
+            const resRed = probePotentialAt(voltmeter.red.x, voltmeter.red.y);
+            const resBlack = probePotentialAt(voltmeter.black.x, voltmeter.black.y);
+
+            voltmeter.red.potential = resRed.v;
+            voltmeter.red.label = resRed.label;
+            voltmeter.black.potential = resBlack.v;
+            voltmeter.black.label = resBlack.label;
+
+            document.getElementById('redStatus').innerText = resRed.label;
+            document.getElementById('blackStatus').innerText = resBlack.label;
+
+            const voltDisp = document.getElementById('voltDisplay');
+            if (resRed.v !== null && resBlack.v !== null) {
+                const dV = resRed.v - resBlack.v;
+                const signStr = dV > 0.001 ? '+' : '';
+                voltDisp.innerText = `${signStr}${dV.toFixed(2)} V`;
+            } else {
+                voltDisp.innerText = '? V';
+            }
+
+            ammeter.onWire = checkAmmeterPosition(ammeter.x, ammeter.y);
+            ammeter.reading = ammeter.onWire ? CURRENT : 0.0;
+
+            document.getElementById('ampDisplay').innerText = `${ammeter.reading.toFixed(2)} A`;
+            document.getElementById('ampStatus').innerText = ammeter.onWire ? 'sul circuito chiuso' : 'fuori dal filo';
+        }
+
+        function drawCircuit() {
+            const { bNeg, bPos, bulbBot, bulbSide, scale } = nodes;
+
+            // 1. Raggi luminosi gialli della lampadina
+            const bulbCenter = { x: bulbBot.x, y: bulbBot.y - 75 * scale };
+            ctx.save();
+            ctx.strokeStyle = '#fef08a';
+            ctx.lineWidth = 2.5 * scale;
+            const numRays = 19;
+            for (let i = 0; i < numRays; i++) {
+                const angle = Math.PI * 0.82 + (i / (numRays - 1)) * (Math.PI * 1.36);
+                const rInner = 40 * scale;
+                const rOuter = (i % 2 === 0 ? 115 : 95) * scale;
+                ctx.beginPath();
+                ctx.moveTo(bulbCenter.x + Math.cos(angle) * rInner, bulbCenter.y + Math.sin(angle) * rInner);
+                ctx.lineTo(bulbCenter.x + Math.cos(angle) * rOuter, bulbCenter.y + Math.sin(angle) * rOuter);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // 2. Fili di rame (identici allo stile PhET dell'immagine)
+            drawCopperWire(bNeg.x, bNeg.y, bulbBot.x, bulbBot.y, 14 * scale);
+            drawCopperWire(bPos.x, bPos.y, bulbSide.x, bulbSide.y, 14 * scale);
+
+            // 3. Lampadina (ampolla di vetro, filamento incandescente, virola metallica)
+            ctx.save();
+            // Ampolla
+            const gradGlass = ctx.createRadialGradient(bulbCenter.x - 10 * scale, bulbCenter.y - 10 * scale, 5 * scale, bulbCenter.x, bulbCenter.y, 38 * scale);
+            gradGlass.addColorStop(0, 'rgba(255, 255, 220, 0.92)');
+            gradGlass.addColorStop(0.6, 'rgba(224, 242, 254, 0.75)');
+            gradGlass.addColorStop(1, 'rgba(147, 197, 253, 0.85)');
+            ctx.fillStyle = gradGlass;
+            ctx.beginPath();
+            ctx.arc(bulbCenter.x, bulbCenter.y, 35 * scale, 0.22 * Math.PI, 0.78 * Math.PI, true);
+            ctx.lineTo(bulbBot.x - 18 * scale, bulbBot.y - 42 * scale);
+            ctx.lineTo(bulbBot.x + 18 * scale, bulbBot.y - 42 * scale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+
+            // Filamento interno incandescente
+            ctx.strokeStyle = '#ea580c';
+            ctx.lineWidth = 3 * scale;
+            ctx.beginPath();
+            ctx.moveTo(bulbBot.x - 6 * scale, bulbBot.y - 42 * scale);
+            ctx.lineTo(bulbBot.x - 6 * scale, bulbCenter.y - 8 * scale);
+            ctx.lineTo(bulbBot.x + 12 * scale, bulbCenter.y - 8 * scale);
+            ctx.lineTo(bulbBot.x + 12 * scale, bulbBot.y - 42 * scale);
+            ctx.stroke();
+
+            // Virola metallica argentata
+            const gradMetal = ctx.createLinearGradient(bulbBot.x - 20 * scale, 0, bulbBot.x + 20 * scale, 0);
+            gradMetal.addColorStop(0, '#64748b');
+            gradMetal.addColorStop(0.4, '#f1f5f9');
+            gradMetal.addColorStop(0.8, '#94a3b8');
+            gradMetal.addColorStop(1, '#475569');
+            ctx.fillStyle = gradMetal;
+            ctx.fillRect(bulbBot.x - 19 * scale, bulbBot.y - 42 * scale, 38 * scale, 28 * scale);
+            ctx.strokeStyle = '#1e293b';
+            ctx.strokeRect(bulbBot.x - 19 * scale, bulbBot.y - 42 * scale, 38 * scale, 28 * scale);
+
+            // Isolante nero e piedino inferiore
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.moveTo(bulbBot.x - 19 * scale, bulbBot.y - 14 * scale);
+            ctx.lineTo(bulbBot.x + 19 * scale, bulbBot.y - 14 * scale);
+            ctx.lineTo(bulbBot.x + 10 * scale, bulbBot.y - 3 * scale);
+            ctx.lineTo(bulbBot.x - 10 * scale, bulbBot.y - 3 * scale);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.beginPath();
+            ctx.arc(bulbBot.x, bulbBot.y - 2 * scale, 6 * scale, 0, Math.PI);
+            ctx.fill();
+            ctx.restore();
+
+            // 4. Pila cilindrica in basso (nera a sinistra = polo −, ramata/oro a destra = polo +)
+            ctx.save();
+            const batW = bPos.x - bNeg.x - 12 * scale;
+            const batH = 34 * scale;
+            const batX = bNeg.x + 4 * scale;
+            const batY = bNeg.y - batH / 2;
+
+            // Corpo nero (polo negativo)
+            ctx.fillStyle = '#18181b';
+            ctx.fillRect(batX, batY, batW * 0.65, batH);
+            // Fascia oro/arancio (polo positivo)
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(batX + batW * 0.65, batY, batW * 0.35, batH);
+            // Bordo batteria
+            ctx.strokeStyle = '#09090b';
+            ctx.lineWidth = 1.8;
+            ctx.strokeRect(batX, batY, batW, batH);
+
+            // Bottone polo positivo
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(batX + batW, batY + batH * 0.28, 6 * scale, batH * 0.44);
+            ctx.strokeRect(batX + batW, batY + batH * 0.28, 6 * scale, batH * 0.44);
+
+            // Etichette + e - sulla pila
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${Math.round(13 * scale)}px sans-serif`;
+            ctx.fillText('−', batX + 8 * scale, batY + batH - 6 * scale);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillText('+', batX + batW - 14 * scale, batY + batH - 6 * scale);
+            ctx.restore();
+
+            // 5. Giunzioni circolari tratteggiate ai nodi
+            const jointNodes = [bNeg, bPos, bulbBot, bulbSide];
+            jointNodes.forEach(n => {
+                ctx.save();
+                ctx.fillStyle = 'rgba(180, 140, 110, 0.65)';
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, 11 * scale, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 3]);
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, 15 * scale, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            // 6. Portatori di carica in movimento (Elettroni blu con '-' o Frecce rosse '+')
+            drawCarriers(scale);
+        }
+
+        function drawCopperWire(x1, y1, x2, y2, thickness) {
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const len = Math.hypot(x2 - x1, y2 - y1);
+            ctx.save();
+            ctx.translate(x1, y1);
+            ctx.rotate(angle);
+            const grad = ctx.createLinearGradient(0, -thickness / 2, 0, thickness / 2);
+            grad.addColorStop(0, '#7c2d12');
+            grad.addColorStop(0.35, '#ea580c');
+            grad.addColorStop(0.55, '#fdba74');
+            grad.addColorStop(1, '#7c2d12');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, -thickness / 2, len, thickness);
+            ctx.strokeStyle = '#431407';
+            ctx.lineWidth = 1.2;
+            ctx.strokeRect(0, -thickness / 2, len, thickness);
+            ctx.restore();
+        }
+
+        function getPointAtDistance(dist) {
+            let d = ((dist % totalPathLength) + totalPathLength) % totalPathLength;
+            for (const seg of pathSegments) {
+                if (d >= seg.startDist && d <= seg.startDist + seg.len) {
+                    const t = (d - seg.startDist) / seg.len;
+                    return {
+                        x: seg.x1 + t * (seg.x2 - seg.x1),
+                        y: seg.y1 + t * (seg.y2 - seg.y1),
+                        angle: Math.atan2(seg.y2 - seg.y1, seg.x2 - seg.x1)
+                    };
+                }
+            }
+            return { x: nodes.bNeg.x, y: nodes.bNeg.y, angle: 0 };
+        }
+
+        function drawCarriers(scale) {
+            const spacing = 34 * scale;
+            const count = Math.floor(totalPathLength / spacing);
+
+            for (let i = 0; i < count; i++) {
+                // In modalità 'electrons', le cariche negative vanno da bNeg -> bulbBot -> bulbSide -> bPos (senso crescente di phase)
+                // In modalità 'conventional', le cariche positive vanno in verso opposto (senso decrescente di phase)
+                const dist = flowMode === 'electrons'
+                    ? (i * spacing + phase)
+                    : (i * spacing - phase);
+
+                const pt = getPointAtDistance(dist);
+
+                if (flowMode === 'electrons') {
+                    // Sfera blu con segno meno (identica allo stile PhET)
+                    const r = 8.5 * scale;
+                    ctx.save();
+                    ctx.fillStyle = '#0284c7';
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(pt.x - 4 * scale, pt.y);
+                    ctx.lineTo(pt.x + 4 * scale, pt.y);
+                    ctx.stroke();
+                    ctx.restore();
+                } else {
+                    // Freccia rossa del verso convenzionale della corrente (dal + al −)
+                    const arrowAngle = pt.angle + Math.PI;
+                    ctx.save();
+                    ctx.translate(pt.x, pt.y);
+                    ctx.rotate(arrowAngle);
+                    ctx.fillStyle = '#dc2626';
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.moveTo(9 * scale, 0);
+                    ctx.lineTo(-4 * scale, -6 * scale);
+                    ctx.lineTo(-1 * scale, 0);
+                    ctx.lineTo(-4 * scale, 6 * scale);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function drawInstruments() {
+            // 1. Corpo del Voltmetro sullo sfondo
+            const { boxX, boxY, w, h, red, black } = voltmeter;
+            ctx.save();
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(boxX, boxY, w, h, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillText('VOLTMETRO', boxX + 10, boxY + 16);
+
+            // Display interno sul canvas
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(boxX + 10, boxY + 22, w - 20, 30);
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 15px monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(document.getElementById('voltDisplay').innerText, boxX + w - 16, boxY + 42);
+            ctx.textAlign = 'left';
+
+            // Prese boccola nero e rosso
+            ctx.fillStyle = '#09090b';
+            ctx.beginPath(); ctx.arc(boxX + 30, boxY + h - 8, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath(); ctx.arc(boxX + w - 30, boxY + h - 8, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+
+            // Cavi flessibili del voltmetro
+            drawProbeLead(boxX + 30, boxY + h - 8, black.x, black.y, '#18181b');
+            drawProbeLead(boxX + w - 30, boxY + h - 8, red.x, red.y, '#dc2626');
+
+            // Puntali (Nero e Rosso)
+            drawProbeTip(black.x, black.y, '#18181b', '−');
+            drawProbeTip(red.x, red.y, '#dc2626', '+');
+
+            // 2. Amperometro a pinza / sensore circolare
+            ctx.save();
+            ctx.fillStyle = ammeter.onWire ? 'rgba(16, 185, 129, 0.25)' : 'rgba(30, 41, 59, 0.85)';
+            ctx.strokeStyle = ammeter.onWire ? '#10b981' : '#f8fafc';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(ammeter.x, ammeter.y, ammeter.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Mirino centrale
+            ctx.beginPath();
+            ctx.moveTo(ammeter.x - 8, ammeter.y);
+            ctx.lineTo(ammeter.x + 8, ammeter.y);
+            ctx.moveTo(ammeter.x, ammeter.y - 8);
+            ctx.lineTo(ammeter.x, ammeter.y + 8);
+            ctx.stroke();
+
+            // Etichetta lettura amperometro
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.roundRect(ammeter.x - 36, ammeter.y + ammeter.r + 4, 72, 20, 4);
+            ctx.fill();
+            ctx.fillStyle = '#34d399';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${ammeter.reading.toFixed(2)} A`, ammeter.x, ammeter.y + ammeter.r + 18);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
+
+        function drawProbeLead(x1, y1, x2, y2, color) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            const midY = Math.max(y1, y2) + 35;
+            ctx.bezierCurveTo(x1, midY, x2, midY, x2, y2 + 24);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawProbeTip(x, y, color, sign) {
+            ctx.save();
+            // Punta metallica (la coordinata (x, y) è esattamente la punta di contatto!)
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + 12);
+            ctx.stroke();
+
+            // Impugnatura isolante
+            ctx.fillStyle = color;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(x - 7, y + 12, 14, 24, 3);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(sign, x, y + 28);
+            ctx.textAlign = 'left';
+            ctx.restore();
+        }
+
+        // Loop animazione
+        let lastTime = 0;
+        function animate(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+            lastTime = timestamp;
+
+            phase += 55 * dt;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawCircuit();
+            drawInstruments();
+
+            requestAnimationFrame(animate);
+        }
+
+        // Gestione Drag & Drop (Mouse e Touch)
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function onPointerDown(e) {
+            const pos = getPointerPos(e);
+
+            // Controllo puntale rosso (punta + impugnatura)
+            if (Math.hypot(pos.x - voltmeter.red.x, pos.y - (voltmeter.red.y + 18)) < 24) {
+                draggingItem = 'red';
+                dragOffset = { x: pos.x - voltmeter.red.x, y: pos.y - voltmeter.red.y };
+                return;
+            }
+            // Controllo puntale nero
+            if (Math.hypot(pos.x - voltmeter.black.x, pos.y - (voltmeter.black.y + 18)) < 24) {
+                draggingItem = 'black';
+                dragOffset = { x: pos.x - voltmeter.black.x, y: pos.y - voltmeter.black.y };
+                return;
+            }
+            // Controllo amperometro
+            if (Math.hypot(pos.x - ammeter.x, pos.y - ammeter.y) < ammeter.r + 8) {
+                draggingItem = 'ammeter';
+                dragOffset = { x: pos.x - ammeter.x, y: pos.y - ammeter.y };
+                return;
+            }
+            // Controllo riquadro voltmetro
+            if (pos.x >= voltmeter.boxX && pos.x <= voltmeter.boxX + voltmeter.w &&
+                pos.y >= voltmeter.boxY && pos.y <= voltmeter.boxY + voltmeter.h) {
+                draggingItem = 'voltBox';
+                dragOffset = { x: pos.x - voltmeter.boxX, y: pos.y - voltmeter.boxY };
+                return;
+            }
+        }
+
+        function onPointerMove(e) {
+            if (!draggingItem) return;
+            const pos = getPointerPos(e);
+            const nx = Math.max(15, Math.min(canvas.width - 15, pos.x - dragOffset.x));
+            const ny = Math.max(15, Math.min(canvas.height - 15, pos.y - dragOffset.y));
+
+            if (draggingItem === 'red') {
+                voltmeter.red.x = nx;
+                voltmeter.red.y = ny;
+            } else if (draggingItem === 'black') {
+                voltmeter.black.x = nx;
+                voltmeter.black.y = ny;
+            } else if (draggingItem === 'ammeter') {
+                ammeter.x = nx;
+                ammeter.y = ny;
+            } else if (draggingItem === 'voltBox') {
+                voltmeter.boxX = Math.max(10, Math.min(canvas.width - voltmeter.w - 10, nx));
+                voltmeter.boxY = Math.max(10, Math.min(canvas.height - voltmeter.h - 10, ny));
+            }
+            evaluateMeasurements();
+        }
+
+        function onPointerUp() {
+            draggingItem = null;
+        }
+
+        canvas.addEventListener('mousedown', onPointerDown);
+        canvas.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
+
+        canvas.addEventListener('touchstart', onPointerDown, { passive: true });
+        canvas.addEventListener('touchmove', onPointerMove, { passive: true });
+        window.addEventListener('touchend', onPointerUp);
+
+        setTimeout(() => {
+            resizeCanvas();
+            requestAnimationFrame(animate);
+        }, 50);
+    </script>
+</body>
+</html>
