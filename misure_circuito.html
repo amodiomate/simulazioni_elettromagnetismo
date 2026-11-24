@@ -140,7 +140,6 @@
             width: 100%;
             padding: 8px;
             background-color: #334155;
-            hover: background-color: #475569;
             color: #f8fafc;
             border: 1px solid #475569;
             border-radius: 6px;
@@ -230,7 +229,7 @@
             </div>
 
             <div class="note-box">
-                💡 <b>Osserva:</b> Il circuito non è modificabile. Appoggia i puntali del voltmetro ai capi della pila o della lampadina, e sposta il mirino dell'amperometro lungo i due fili di rame.
+                💡 <b>Osserva:</b> Il circuito non è modificabile. Appoggia i puntali del voltmetro ai capi della pila o ai due contatti della lampadina, e sposta il mirino dell'amperometro lungo i due fili di rame.
             </div>
 
             <button class="btn-reset" onclick="resetInstruments()">↺ Riposiziona gli strumenti</button>
@@ -249,12 +248,6 @@
         let flowMode = 'electrons'; // 'electrons' | 'conventional'
         let phase = 0;
 
-        // Nodi topologici del circuito (calcolati al resize)
-        // Circuito a triangolo come nell'immagine:
-        // B_NEG (polo negativo pila, in basso a sinistra)
-        // B_POS (polo positivo pila, in basso a destra)
-        // BULB_BOTTOM (contatto inferiore lampadina, in alto a sinistra)
-        // BULB_SIDE (contatto laterale lampadina, in alto a destra)
         let nodes = {};
         let pathSegments = [];
         let totalPathLength = 0;
@@ -294,27 +287,29 @@
             const cy = canvas.height * 0.52;
             const scale = Math.min(canvas.width / 650, canvas.height / 520, 1.15);
 
-            // Disposizione geometrica identica all'immagine PhET fornita
+            // Disposizione geometrica del circuito:
+            // bulbBot è esattamente alla punta inferiore della lampadina
+            // bulbSide è esattamente sul bordo destro della base metallica della lampadina (x = bulbBot.x + 19*scale)
             const bNeg = { x: cx - 55 * scale, y: cy + 165 * scale, v: 0.0, name: 'Polo − Pila' };
             const bPos = { x: cx + 85 * scale, y: cy + 165 * scale, v: EMF, name: 'Polo + Pila' };
-            const bulbBot = { x: cx - 65 * scale, y: cy - 65 * scale, v: 0.0, name: 'Base Lampadina' };
-            const bulbSide = { x: cx - 22 * scale, y: cy - 95 * scale, v: EMF, name: 'Virola Lampadina' };
+            const bulbBot = { x: cx - 65 * scale, y: cy - 65 * scale, v: 0.0, name: 'Contatto inf. lampadina' };
+            const bulbSide = { x: bulbBot.x + 19 * scale, y: bulbBot.y - 28 * scale, v: EMF, name: 'Contatto lat. lampadina' };
 
             nodes = { bNeg, bPos, bulbBot, bulbSide, scale };
 
-            // Percorso chiuso nel verso degli elettroni (da bNeg -> bulbBot -> filamento -> bulbSide -> bPos -> interno pila -> bNeg)
-            const filamentMid1 = { x: cx - 65 * scale, y: cy - 135 * scale };
-            const filamentTop1 = { x: cx - 72 * scale, y: cy - 155 * scale };
-            const filamentTop2 = { x: cx - 45 * scale, y: cy - 155 * scale };
-            const filamentMid2 = { x: cx - 45 * scale, y: cy - 125 * scale };
+            // Percorso chiuso continuo senza interruzioni
+            const filamentEnter = { x: bulbBot.x - 6 * scale, y: bulbBot.y - 42 * scale };
+            const filamentTop1 = { x: bulbBot.x - 6 * scale, y: bulbBot.y - 83 * scale };
+            const filamentTop2 = { x: bulbBot.x + 12 * scale, y: bulbBot.y - 83 * scale };
+            const filamentExit = { x: bulbBot.x + 12 * scale, y: bulbBot.y - 42 * scale };
 
             const pts = [
                 bNeg,
                 bulbBot,
-                filamentMid1,
+                filamentEnter,
                 filamentTop1,
                 filamentTop2,
-                filamentMid2,
+                filamentExit,
                 bulbSide,
                 bPos,
                 bNeg
@@ -331,7 +326,7 @@
                     x2: p2.x, y2: p2.y,
                     len: len,
                     startDist: totalPathLength,
-                    isWire: (i === 0 || i === 6) // Filo sinistro e filo destro
+                    isWire: (i === 0 || i === 6)
                 });
                 totalPathLength += len;
             }
@@ -352,14 +347,13 @@
             evaluateMeasurements();
         }
 
-        // Calcola il potenziale elettrico in un punto (x, y) se tocca un conduttore del circuito
         function probePotentialAt(px, py) {
             const snapDist = 18;
-            // Ramo a potenziale 0 V (polo negativo pila <-> filo sinistro <-> contatto base lampadina)
+            // Ramo a potenziale 0 V (polo negativo pila <-> filo sinistro <-> contatto inferiore lampadina)
             const dLeftWire = distToSegment(px, py, nodes.bNeg.x, nodes.bNeg.y, nodes.bulbBot.x, nodes.bulbBot.y);
             if (dLeftWire <= snapDist) {
                 if (Math.hypot(px - nodes.bNeg.x, py - nodes.bNeg.y) < 22) return { v: 0.0, label: 'Polo − (0 V)' };
-                if (Math.hypot(px - nodes.bulbBot.x, py - nodes.bulbBot.y) < 22) return { v: 0.0, label: 'Base lampadina' };
+                if (Math.hypot(px - nodes.bulbBot.x, py - nodes.bulbBot.y) < 22) return { v: 0.0, label: 'Contatto inf. lamp.' };
                 return { v: 0.0, label: 'Filo sinistro' };
             }
 
@@ -367,14 +361,13 @@
             const dRightWire = distToSegment(px, py, nodes.bPos.x, nodes.bPos.y, nodes.bulbSide.x, nodes.bulbSide.y);
             if (dRightWire <= snapDist) {
                 if (Math.hypot(px - nodes.bPos.x, py - nodes.bPos.y) < 22) return { v: EMF, label: 'Polo + (+9 V)' };
-                if (Math.hypot(px - nodes.bulbSide.x, py - nodes.bulbSide.y) < 22) return { v: EMF, label: 'Virola lampadina' };
+                if (Math.hypot(px - nodes.bulbSide.x, py - nodes.bulbSide.y) < 22) return { v: EMF, label: 'Contatto lat. lamp.' };
                 return { v: EMF, label: 'Filo destro' };
             }
 
             return { v: null, label: 'libero' };
         }
 
-        // Controlla se l'amperometro è sopra un filo o componente attraversato da corrente
         function checkAmmeterPosition(ax, ay) {
             for (const seg of pathSegments) {
                 const d = distToSegment(ax, ay, seg.x1, seg.y1, seg.x2, seg.y2);
@@ -441,13 +434,12 @@
             }
             ctx.restore();
 
-            // 2. Fili di rame (identici allo stile PhET dell'immagine)
+            // 2. Fili di rame saldamente ancorati alla lampadina e alla pila
             drawCopperWire(bNeg.x, bNeg.y, bulbBot.x, bulbBot.y, 14 * scale);
             drawCopperWire(bPos.x, bPos.y, bulbSide.x, bulbSide.y, 14 * scale);
 
-            // 3. Lampadina (ampolla di vetro, filamento incandescente, virola metallica)
+            // 3. Lampadina (ampolla di vetro, filamento incandescente, base metallica)
             ctx.save();
-            // Ampolla
             const gradGlass = ctx.createRadialGradient(bulbCenter.x - 10 * scale, bulbCenter.y - 10 * scale, 5 * scale, bulbCenter.x, bulbCenter.y, 38 * scale);
             gradGlass.addColorStop(0, 'rgba(255, 255, 220, 0.92)');
             gradGlass.addColorStop(0.6, 'rgba(224, 242, 254, 0.75)');
@@ -463,7 +455,7 @@
             ctx.lineWidth = 1.8;
             ctx.stroke();
 
-            // Filamento interno incandescente
+            // Filamento interno incandescente collegato ai due contatti
             ctx.strokeStyle = '#ea580c';
             ctx.lineWidth = 3 * scale;
             ctx.beginPath();
@@ -473,7 +465,7 @@
             ctx.lineTo(bulbBot.x + 12 * scale, bulbBot.y - 42 * scale);
             ctx.stroke();
 
-            // Virola metallica argentata
+            // Base metallica filettata (cilindro)
             const gradMetal = ctx.createLinearGradient(bulbBot.x - 20 * scale, 0, bulbBot.x + 20 * scale, 0);
             gradMetal.addColorStop(0, '#64748b');
             gradMetal.addColorStop(0.4, '#f1f5f9');
@@ -484,7 +476,7 @@
             ctx.strokeStyle = '#1e293b';
             ctx.strokeRect(bulbBot.x - 19 * scale, bulbBot.y - 42 * scale, 38 * scale, 28 * scale);
 
-            // Isolante nero e piedino inferiore
+            // Isolante nero e contatto inferiore della lampadina
             ctx.fillStyle = '#0f172a';
             ctx.beginPath();
             ctx.moveTo(bulbBot.x - 19 * scale, bulbBot.y - 14 * scale);
@@ -500,30 +492,25 @@
             ctx.fill();
             ctx.restore();
 
-            // 4. Pila cilindrica in basso (nera a sinistra = polo −, ramata/oro a destra = polo +)
+            // 4. Pila cilindrica in basso
             ctx.save();
             const batW = bPos.x - bNeg.x - 12 * scale;
             const batH = 34 * scale;
             const batX = bNeg.x + 4 * scale;
             const batY = bNeg.y - batH / 2;
 
-            // Corpo nero (polo negativo)
             ctx.fillStyle = '#18181b';
             ctx.fillRect(batX, batY, batW * 0.65, batH);
-            // Fascia oro/arancio (polo positivo)
             ctx.fillStyle = '#f59e0b';
             ctx.fillRect(batX + batW * 0.65, batY, batW * 0.35, batH);
-            // Bordo batteria
             ctx.strokeStyle = '#09090b';
             ctx.lineWidth = 1.8;
             ctx.strokeRect(batX, batY, batW, batH);
 
-            // Bottone polo positivo
             ctx.fillStyle = '#94a3b8';
             ctx.fillRect(batX + batW, batY + batH * 0.28, 6 * scale, batH * 0.44);
             ctx.strokeRect(batX + batW, batY + batH * 0.28, 6 * scale, batH * 0.44);
 
-            // Etichette + e - sulla pila
             ctx.fillStyle = '#ffffff';
             ctx.font = `bold ${Math.round(13 * scale)}px sans-serif`;
             ctx.fillText('−', batX + 8 * scale, batY + batH - 6 * scale);
@@ -531,25 +518,25 @@
             ctx.fillText('+', batX + batW - 14 * scale, batY + batH - 6 * scale);
             ctx.restore();
 
-            // 5. Giunzioni circolari tratteggiate ai nodi
+            // 5. Giunzioni circolari tratteggiate ai quattro contatti del circuito
             const jointNodes = [bNeg, bPos, bulbBot, bulbSide];
             jointNodes.forEach(n => {
                 ctx.save();
-                ctx.fillStyle = 'rgba(180, 140, 110, 0.65)';
+                ctx.fillStyle = 'rgba(180, 140, 110, 0.75)';
                 ctx.beginPath();
-                ctx.arc(n.x, n.y, 11 * scale, 0, Math.PI * 2);
+                ctx.arc(n.x, n.y, 10 * scale, 0, Math.PI * 2);
                 ctx.fill();
 
                 ctx.strokeStyle = '#0f172a';
                 ctx.lineWidth = 1.5;
                 ctx.setLineDash([4, 3]);
                 ctx.beginPath();
-                ctx.arc(n.x, n.y, 15 * scale, 0, Math.PI * 2);
+                ctx.arc(n.x, n.y, 14 * scale, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.restore();
             });
 
-            // 6. Portatori di carica in movimento (Elettroni blu con '-' o Frecce rosse '+')
+            // 6. Portatori di carica in movimento
             drawCarriers(scale);
         }
 
@@ -592,8 +579,6 @@
             const count = Math.floor(totalPathLength / spacing);
 
             for (let i = 0; i < count; i++) {
-                // In modalità 'electrons', le cariche negative vanno da bNeg -> bulbBot -> bulbSide -> bPos (senso crescente di phase)
-                // In modalità 'conventional', le cariche positive vanno in verso opposto (senso decrescente di phase)
                 const dist = flowMode === 'electrons'
                     ? (i * spacing + phase)
                     : (i * spacing - phase);
@@ -601,7 +586,6 @@
                 const pt = getPointAtDistance(dist);
 
                 if (flowMode === 'electrons') {
-                    // Sfera blu con segno meno (identica allo stile PhET)
                     const r = 8.5 * scale;
                     ctx.save();
                     ctx.fillStyle = '#0284c7';
@@ -620,7 +604,6 @@
                     ctx.stroke();
                     ctx.restore();
                 } else {
-                    // Freccia rossa del verso convenzionale della corrente (dal + al −)
                     const arrowAngle = pt.angle + Math.PI;
                     ctx.save();
                     ctx.translate(pt.x, pt.y);
@@ -642,7 +625,6 @@
         }
 
         function drawInstruments() {
-            // 1. Corpo del Voltmetro sullo sfondo
             const { boxX, boxY, w, h, red, black } = voltmeter;
             ctx.save();
             ctx.fillStyle = '#1e293b';
@@ -657,7 +639,6 @@
             ctx.font = 'bold 10px sans-serif';
             ctx.fillText('VOLTMETRO', boxX + 10, boxY + 16);
 
-            // Display interno sul canvas
             ctx.fillStyle = '#020617';
             ctx.fillRect(boxX + 10, boxY + 22, w - 20, 30);
             ctx.fillStyle = '#fbbf24';
@@ -666,22 +647,18 @@
             ctx.fillText(document.getElementById('voltDisplay').innerText, boxX + w - 16, boxY + 42);
             ctx.textAlign = 'left';
 
-            // Prese boccola nero e rosso
             ctx.fillStyle = '#09090b';
             ctx.beginPath(); ctx.arc(boxX + 30, boxY + h - 8, 5, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#dc2626';
             ctx.beginPath(); ctx.arc(boxX + w - 30, boxY + h - 8, 5, 0, Math.PI * 2); ctx.fill();
             ctx.restore();
 
-            // Cavi flessibili del voltmetro
             drawProbeLead(boxX + 30, boxY + h - 8, black.x, black.y, '#18181b');
             drawProbeLead(boxX + w - 30, boxY + h - 8, red.x, red.y, '#dc2626');
 
-            // Puntali (Nero e Rosso)
             drawProbeTip(black.x, black.y, '#18181b', '−');
             drawProbeTip(red.x, red.y, '#dc2626', '+');
 
-            // 2. Amperometro a pinza / sensore circolare
             ctx.save();
             ctx.fillStyle = ammeter.onWire ? 'rgba(16, 185, 129, 0.25)' : 'rgba(30, 41, 59, 0.85)';
             ctx.strokeStyle = ammeter.onWire ? '#10b981' : '#f8fafc';
@@ -691,7 +668,6 @@
             ctx.fill();
             ctx.stroke();
 
-            // Mirino centrale
             ctx.beginPath();
             ctx.moveTo(ammeter.x - 8, ammeter.y);
             ctx.lineTo(ammeter.x + 8, ammeter.y);
@@ -699,7 +675,6 @@
             ctx.lineTo(ammeter.x, ammeter.y + 8);
             ctx.stroke();
 
-            // Etichetta lettura amperometro
             ctx.fillStyle = '#0f172a';
             ctx.beginPath();
             ctx.roundRect(ammeter.x - 36, ammeter.y + ammeter.r + 4, 72, 20, 4);
@@ -726,7 +701,6 @@
 
         function drawProbeTip(x, y, color, sign) {
             ctx.save();
-            // Punta metallica (la coordinata (x, y) è esattamente la punta di contatto!)
             ctx.strokeStyle = '#e2e8f0';
             ctx.lineWidth = 3;
             ctx.beginPath();
@@ -734,7 +708,6 @@
             ctx.lineTo(x, y + 12);
             ctx.stroke();
 
-            // Impugnatura isolante
             ctx.fillStyle = color;
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 1.5;
@@ -751,7 +724,6 @@
             ctx.restore();
         }
 
-        // Loop animazione
         let lastTime = 0;
         function animate(timestamp) {
             if (!lastTime) lastTime = timestamp;
@@ -767,7 +739,6 @@
             requestAnimationFrame(animate);
         }
 
-        // Gestione Drag & Drop (Mouse e Touch)
         function getPointerPos(e) {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -778,25 +749,21 @@
         function onPointerDown(e) {
             const pos = getPointerPos(e);
 
-            // Controllo puntale rosso (punta + impugnatura)
             if (Math.hypot(pos.x - voltmeter.red.x, pos.y - (voltmeter.red.y + 18)) < 24) {
                 draggingItem = 'red';
                 dragOffset = { x: pos.x - voltmeter.red.x, y: pos.y - voltmeter.red.y };
                 return;
             }
-            // Controllo puntale nero
             if (Math.hypot(pos.x - voltmeter.black.x, pos.y - (voltmeter.black.y + 18)) < 24) {
                 draggingItem = 'black';
                 dragOffset = { x: pos.x - voltmeter.black.x, y: pos.y - voltmeter.black.y };
                 return;
             }
-            // Controllo amperometro
             if (Math.hypot(pos.x - ammeter.x, pos.y - ammeter.y) < ammeter.r + 8) {
                 draggingItem = 'ammeter';
                 dragOffset = { x: pos.x - ammeter.x, y: pos.y - ammeter.y };
                 return;
             }
-            // Controllo riquadro voltmetro
             if (pos.x >= voltmeter.boxX && pos.x <= voltmeter.boxX + voltmeter.w &&
                 pos.y >= voltmeter.boxY && pos.y <= voltmeter.boxY + voltmeter.h) {
                 draggingItem = 'voltBox';
